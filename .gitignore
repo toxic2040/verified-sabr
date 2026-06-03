@@ -1,0 +1,8 @@
+# internal working material — not part of the public artifact
+CLAUDE.md
+docs/plans/
+docs/sources/
+# build
+.lake/
+# never commit papers/figures
+*.pdf
