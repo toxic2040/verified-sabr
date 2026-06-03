@@ -1,7 +1,7 @@
 name = "VerifiedSabr"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["VerifiedSabr"]
+defaultTargets = ["VerifiedSabr", "VerifiedSabrTests"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -17,3 +17,7 @@ rev = "v4.30.0"
 
 [[lean_lib]]
 name = "VerifiedSabr"
+
+[[lean_lib]]
+name = "VerifiedSabrTests"
+globs = ["VerifiedSabr.Tests.+"]

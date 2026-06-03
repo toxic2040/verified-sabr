@@ -2,6 +2,9 @@ import VerifiedSabr.Basic
 
 namespace VerifiedSabr.Tests
 
+-- `#guard` is the test idiom of this repo: assertions check at compile time.
+set_option linter.hashCommand false
+
 open VerifiedSabr
 
 def cAB : Contact :=

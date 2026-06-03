@@ -3,6 +3,9 @@ import VerifiedSabr.Route
 -- Sub-namespace avoids name collision with BasicTests' cAB/cBC in VerifiedSabr.Tests
 namespace VerifiedSabr.Tests.Route
 
+-- `#guard` is the test idiom of this repo: assertions check at compile time.
+set_option linter.hashCommand false
+
 open VerifiedSabr
 
 def cAB : Contact := { source := "A", dest := "B", tStart := 0, tEnd := 10, owlt := 1 }

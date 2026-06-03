@@ -14,6 +14,8 @@ Planned: optimality of the returned route, loop-freedom characterization for
 multi-node forwarding, and differential testing against a reference
 implementation. See `docs/specs/` for the design.
 
-Build: `lake exe cache get && lake build`.
+Build: `lake exe cache get && lake build`. The default build includes the
+test modules under `VerifiedSabr/Tests/`, whose `#guard` assertions are
+checked at compile time.
 
 License: MIT.

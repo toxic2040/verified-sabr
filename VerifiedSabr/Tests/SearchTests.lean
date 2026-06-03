@@ -3,6 +3,9 @@ import VerifiedSabr.Search
 -- Sub-namespace avoids name collision with other test namespaces
 namespace VerifiedSabr.Tests.Search
 
+-- `#guard` is the test idiom of this repo: assertions check at compile time.
+set_option linter.hashCommand false
+
 open VerifiedSabr
 
 def cAB : Contact := { source := "A", dest := "B", tStart := 0, tEnd := 10, owlt := 1 }
@@ -23,14 +26,22 @@ def plan : ContactPlan := [cAB, cBC, cAC]
 
 -- Worked example: Tutorial Fig. 3, A→E, t₀ = 0. [algorithm.md §6]
 -- All contacts: rate = 1, owlt = 1.
-def c12   : Contact := { source := "A", dest := "B", tStart := 0,  tEnd := 60, owlt := 1, rate := 1 }
-def c34   : Contact := { source := "B", dest := "C", tStart := 0,  tEnd := 60, owlt := 1, rate := 1 }
-def c56   : Contact := { source := "A", dest := "C", tStart := 0,  tEnd := 60, owlt := 1, rate := 1 }
-def c78   : Contact := { source := "C", dest := "D", tStart := 0,  tEnd := 30, owlt := 1, rate := 1 }
-def c910  : Contact := { source := "A", dest := "E", tStart := 10, tEnd := 20, owlt := 1, rate := 1 }
-def c1112 : Contact := { source := "D", dest := "E", tStart := 0,  tEnd := 10, owlt := 1, rate := 1 }
-def c1314 : Contact := { source := "D", dest := "E", tStart := 30, tEnd := 40, owlt := 1, rate := 1 }
-def c1516 : Contact := { source := "D", dest := "E", tStart := 50, tEnd := 60, owlt := 1, rate := 1 }
+def c12 : Contact :=
+  { source := "A", dest := "B", tStart := 0, tEnd := 60, owlt := 1, rate := 1 }
+def c34 : Contact :=
+  { source := "B", dest := "C", tStart := 0, tEnd := 60, owlt := 1, rate := 1 }
+def c56 : Contact :=
+  { source := "A", dest := "C", tStart := 0, tEnd := 60, owlt := 1, rate := 1 }
+def c78 : Contact :=
+  { source := "C", dest := "D", tStart := 0, tEnd := 30, owlt := 1, rate := 1 }
+def c910 : Contact :=
+  { source := "A", dest := "E", tStart := 10, tEnd := 20, owlt := 1, rate := 1 }
+def c1112 : Contact :=
+  { source := "D", dest := "E", tStart := 0, tEnd := 10, owlt := 1, rate := 1 }
+def c1314 : Contact :=
+  { source := "D", dest := "E", tStart := 30, tEnd := 40, owlt := 1, rate := 1 }
+def c1516 : Contact :=
+  { source := "D", dest := "E", tStart := 50, tEnd := 60, owlt := 1, rate := 1 }
 def tutPlan : ContactPlan := [c12, c34, c56, c78, c910, c1112, c1314, c1516]
 
 #guard routeSearch tutPlan "A" "E" 0 == some [c56, c78, c1112]   -- best route, BDT 3
