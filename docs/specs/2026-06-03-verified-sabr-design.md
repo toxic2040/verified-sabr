@@ -50,6 +50,8 @@ Out (v1):
   Decide in Phase 0 whether time-feasibility-only route search is a faithful
   restriction of the standard or a strawman; if the latter, EVL moves in-scope
   and the schedule stretches.
+- Bundle expiration/deadline filtering and the standard's full best-route
+  tie-break order; both are route-selection concerns, deferred together.
 - Contact plan distribution/synchronization protocols.
 - Opportunistic/probabilistic contacts; scheduled contacts only.
 - BPSec, fragmentation, custody.
@@ -74,7 +76,9 @@ Out (v1):
 ## Theorems
 
 - **T1 — route validity (soundness).** Any route returned by `routeSearch` is
-  well-formed and arrives by the bundle deadline. First presentable result.
+  well-formed: plan-drawn, adjacent, and window-feasible from the start time.
+  First presentable result. Bundle-deadline filtering belongs to route
+  selection and moves to v2 with the full tie-break order.
 - **T2 — optimality.** The returned route minimizes earliest arrival time over
   all well-formed routes in the plan. Dijkstra-correctness on the contact
   graph; the hard grind, but a well-trodden proof pattern.
