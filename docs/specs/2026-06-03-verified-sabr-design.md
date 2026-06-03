@@ -62,9 +62,11 @@ Out (v1):
   executable; no real analysis is needed anywhere in the development.
 - `Contact`: from-node, to-node, start, end, transmission rate, one-way light
   time. Contact plan: finite list of contacts.
-- Contact graph per the standard: vertices are contacts, edges are temporally
-  feasible successions (receiver of A is sender of B; arrival at B's sender,
-  including propagation, falls inside B's window or before it with waiting).
+- Contact graph per the standard: vertices are contacts; an edge from P to Q
+  exists exactly when P's receiving node is Q's sending node — adjacency only.
+  Temporal feasibility (windows, propagation, waiting) is checked along
+  candidate paths during route computation, not at edge construction
+  (algorithm.md §2).
 - `Route`: a contact sequence with a well-formedness predicate covering
   adjacency, window feasibility, and propagation delay. Earliest arrival time
   is computed by structural recursion over the route.

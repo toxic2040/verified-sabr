@@ -28,8 +28,10 @@ published worked example):
   kept in `docs/sources/`. Cited below as **[Tutorial]**.
 - Caini, De Cola, Persampieri, "Schedule-Aware Bundle Routing: Analysis and
   enhancements," *Int. J. Satellite Communications and Networking* 39 (2021)
-  237–249, DOI 10.1002/sat.1384. **Paywalled (Wiley); no open postprint was
-  located** at IRIS UniBo, HAL, or author pages. Not used as a source for any
+  237–249, DOI 10.1002/sat.1384. Publisher version paywalled (Wiley). The
+  IRIS UniBo record (handle 11585/859994) lists the paper; machine retrieval
+  of its full text was blocked at the time of writing, so no copy is held in
+  `docs/sources/`. Not used as a source for any
   statement in this document; the Blue Book is normative and the tutorial
   supplies the worked example, so its absence does not affect the model. (An
   older, related conference deck by Bezirgiannidis & Caini was retrieved but is
@@ -371,14 +373,18 @@ tie-break (§3.2.8.1.4) are *all* volume-independent; volume only ever *removes*
 candidates. So the time-only search computes the same route the full procedure
 would, on any plan where contact volumes are not the binding constraint.
 
-**Decision (2026-06-03): OUT for v1, with the restriction stated as an explicit
-hypothesis in the theorems.** Justification passage: §3.2.6.8.8 — "The initial
+**Decision (2026-06-03): OUT for v1.** Justification passage: §3.2.6.8.8 — "The initial
 value of MTV of a given contact, for all levels of priority, is the volume of
 the contact" — combined with the depletion definition §3.2.6.8.11 (depleted iff
 RVL ≤ 0). The honest framing is not "we ignore volume" but "we formalize the
 standard's route search under the hypothesis that no contact is volume-binding
-(single bundle, empty queues), which §3.2.6.8.8/§3.2.6.8.11 make precise," and
-the theorem statements carry that hypothesis. This keeps v1 a *faithful
+(single bundle, empty queues), which §3.2.6.8.8/§3.2.6.8.11 make precise." In
+v1 this restriction is structural, not hypothesis-carried: the model contains
+no volume state at all (`rate` is recorded but unread by route search), so the
+T1 statements are about exactly the time-only procedure and carry no volume
+premise. When volume enters the model (EVL, with optimality work), the
+corresponding theorems must state the non-volume-binding hypothesis explicitly
+rather than silently dropping it. This keeps v1 a *faithful
 restriction* rather than a strawman, defers the bundle/queue state machine (out
 of v1 scope per the design spec), and leaves a clean seam: EVL re-enters as an
 additional filter on the candidate set without touching the arrival recursion or
