@@ -69,7 +69,8 @@ theorem pickMin_mem : ∀ {l : List Cand} {m : Cand} {rest : List Cand},
       | some mo =>
           obtain ⟨mm, others⟩ := mo
           rw [hp] at h
-          by_cases hc : c.arrival ≤ mm.arrival
+          by_cases hc : c.arrival < mm.arrival
+              ∨ (c.arrival = mm.arrival ∧ c.hops.length ≤ mm.hops.length)
           · simp only [hc, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at h
             obtain ⟨hm, hrest⟩ := h
             subst hm; subst hrest
@@ -165,21 +166,25 @@ theorem expand_inv (cp : ContactPlan) (src : Node) (t₀ : Time) (cand : Cand)
 
 /-- Soundness invariant of the best-first loop: if every frontier candidate
     satisfies `CandInv` and the loop returns `hops`, then `hops` is a
-    plan-drawn, adjacent chain with a defined arrival time. [algorithm.md §3] -/
+    plan-drawn, adjacent chain with a defined arrival time. The closed list
+    only removes candidates from consideration and never constructs one, so it
+    is universally quantified and carries no invariant of its own.
+    [algorithm.md §3, §8] -/
 theorem searchLoop_sound (cp : ContactPlan) (src dst : Node) (t₀ : Time) :
-    ∀ (fuel : Nat) (frontier : List Cand) (hops : List Contact),
+    ∀ (fuel : Nat) (frontier : List Cand) (closed : List Contact)
+      (hops : List Contact),
       (∀ cand ∈ frontier, CandInv cp src t₀ cand) →
-      searchLoop cp src dst fuel frontier = some hops →
+      searchLoop cp src dst fuel frontier closed = some hops →
       (∀ c ∈ hops, c ∈ cp)
       ∧ chainOk hops = true
       ∧ (arrivalTime t₀ hops).isSome := by
   intro fuel
   induction fuel with
   | zero =>
-      intro frontier hops _ hloop
+      intro frontier closed hops _ hloop
       simp [searchLoop] at hloop
   | succ n ih =>
-      intro frontier hops hfront hloop
+      intro frontier closed hops hfront hloop
       rw [searchLoop] at hloop
       cases hp : pickMin frontier with
       | none => rw [hp] at hloop; simp at hloop
@@ -189,6 +194,14 @@ theorem searchLoop_sound (cp : ContactPlan) (src dst : Node) (t₀ : Time) :
           simp only at hloop
           obtain ⟨hbestmem, hrestmem⟩ := pickMin_mem hp
           have hbestinv : CandInv cp src t₀ best := hfront best hbestmem
+          have hrestinv : ∀ cand ∈ rest, CandInv cp src t₀ cand :=
+            fun cand hcand => hfront cand (hrestmem cand hcand)
+          have hexpinv :
+              ∀ cand ∈ expand cp src best ++ rest, CandInv cp src t₀ cand := by
+            intro cand hcand
+            rcases List.mem_append.1 hcand with h1 | h1
+            · exact expand_inv cp src t₀ best hbestinv cand h1
+            · exact hrestinv cand h1
           by_cases hret : (best.node src == dst && !best.hops.isEmpty) = true
           · -- returning `best`: read off all three conjuncts from `CandInv best`
             rw [if_pos hret] at hloop
@@ -200,12 +213,23 @@ theorem searchLoop_sound (cp : ContactPlan) (src dst : Node) (t₀ : Time) :
               exact hmem c (List.mem_reverse.1 hc)
             · rw [harrcache]
               exact Option.isSome_some
-          · -- recursing: the new frontier preserves the invariant
+          · -- recursing: every branch shrinks to a frontier that preserves the
+            -- invariant — expansion (root or newly closed head) or the popped
+            -- remainder (already-closed head, dropped unexpanded)
             rw [if_neg hret] at hloop
-            apply ih (expand cp src best ++ rest) hops _ hloop
-            intro cand hcand
-            rcases List.mem_append.1 hcand with h1 | h1
-            · exact expand_inv cp src t₀ best hbestinv cand h1
-            · exact hfront cand (hrestmem cand h1)
+            cases hh : best.hops with
+            | nil =>
+                rw [hh] at hloop
+                simp only at hloop
+                exact ih (expand cp src best ++ rest) closed hops hexpinv hloop
+            | cons c tl =>
+                rw [hh] at hloop
+                simp only at hloop
+                by_cases hcl : closed.contains c = true
+                · rw [if_pos hcl] at hloop
+                  exact ih rest closed hops hrestinv hloop
+                · rw [if_neg hcl] at hloop
+                  exact ih (expand cp src best ++ rest) (c :: closed) hops
+                    hexpinv hloop
 
 end VerifiedSabr

@@ -50,4 +50,29 @@ def tutPlan : ContactPlan := [c12, c34, c56, c78, c910, c1112, c1314, c1516]
 #guard arrivalTime 0 [c56, c78, c1314] == some 31                -- Route (3)
 #guard arrivalTime 0 [c56, c78, c1516] == some 51                -- Route (4)
 
+-- Visited-list pins. [algorithm.md §8]
+-- A slower duplicate path into the same forwarding contact must not change
+-- the result: B is reachable via dAB1 (arrive 1) and dAB2 (arrive 6); the
+-- continuation dBC closes after first expansion and the answer stays the
+-- earliest-arrival route.
+def dAB1 : Contact := { source := "A", dest := "B", tStart := 0, tEnd := 10, owlt := 1 }
+def dAB2 : Contact := { source := "A", dest := "B", tStart := 5, tEnd := 15, owlt := 1 }
+def dBC : Contact := { source := "B", dest := "C", tStart := 0, tEnd := 30, owlt := 1 }
+def dupPlan : ContactPlan := [dAB1, dAB2, dBC]
+
+#guard ((routeSearch dupPlan "A" "C" 0).bind (arrivalTime 0)) == some 2
+#guard routeSearch dupPlan "A" "C" 0 == some [dAB1, dBC]
+-- regression: the tutorial expectation survives the visited-list refit
+#guard ((routeSearch tutPlan "A" "E" 0).bind (arrivalTime 0)) == some 3
+
+-- §3.2.8.1.4 key 2 (fewest contacts) on an arrival tie: owlt-0 contacts make
+-- both A→C paths arrive at 0; the 1-hop route must beat the 2-hop walk.
+def zAB : Contact := { source := "A", dest := "B", tStart := 0, tEnd := 10, owlt := 0 }
+def zBC : Contact := { source := "B", dest := "C", tStart := 0, tEnd := 10, owlt := 0 }
+def zAC : Contact := { source := "A", dest := "C", tStart := 0, tEnd := 10, owlt := 0 }
+def zeroPlan : ContactPlan := [zAB, zBC, zAC]
+
+#guard routeSearch zeroPlan "A" "C" 0 == some [zAC]
+#guard ((routeSearch zeroPlan "A" "C" 0).bind (arrivalTime 0)) == some 0
+
 end VerifiedSabr.Tests.Search

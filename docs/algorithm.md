@@ -689,11 +689,15 @@ Per query (source, destination, t₀), in order:
    a constant OWLT margin (§2.4.2 permits one; the model pins 0, §3.1), the
    measured constant is applied as `arrival_ion = arrival_lean + margin × hops`
    — measured once on a fixture plan, recorded, never fitted per-plan.
-3. **Hop sequence**: reported, not gating. The v1 `pickMin` orders by arrival
-   alone (Delta 5); ION implements the full §3.2.8.1.4 order, so equal-arrival
-   route choices may legitimately differ. Hop disagreements at *unequal*
-   arrival are impossible by 2; hop disagreements at equal arrival are
-   tabulated as tie-break divergence.
+3. **Hop sequence**: reported, not gating. `pickMin` orders by the first two
+   §3.2.8.1.4 keys (arrival, then hop count — see Delta 5); ION implements
+   all four, so residual ties (equal arrival AND equal hop count) may still
+   legitimately differ on termination time or entry node. Hop disagreements
+   at *unequal* arrival are impossible by 2; hop disagreements at equal
+   arrival are tabulated as tie-break divergence. Integer light-second plans
+   make arrival ties pervasive (owlt-0 intra-lunar contacts), which is why
+   key 2 is implemented rather than deferred: without it the model returns
+   walk-shaped routes on every lunar query and the hop column degenerates.
 
 Exit gate (design spec P6): N ≥ 1000 generated plans; every query agrees under
 1–2, or every disagreement is explained in writing as model defect (stop and
@@ -733,18 +737,19 @@ confirmed.** Baseline filters successors on `c.source == cand.node src` (the
 (§3.2.4.1.1, closed), and `!cand.hops.contains c` (no contact reuse — faithful to
 the §3.2.6.10 loopless-paths search, see §3.3). All three match. No change.
 
-**Delta 5 — tie-break in `pickMin` (Task 5): DIVERGENCE (deferred, documented).**
-Baseline `pickMin` selects the minimal-`arrival` candidate only. The standard's
+**Delta 5 — tie-break in `pickMin` (Task 5): DIVERGENCE (narrowed 2026-06-04,
+remainder deferred).**
+Baseline `pickMin` selected the minimal-`arrival` candidate only. The standard's
 full tie-break (§3.2.8.1.4 a) is the 4-key order
 **(arrival ↑, hop-count ↑, termination-time ↓, entry-node ↑)** (§3.5 above).
-For **T1 (soundness)** the tie-break is irrelevant — any returned route is valid,
-which is all Task 6 proves — so the baseline is sound as written and **needs no
-change for the P0–P3 plan**. The divergence becomes load-bearing only at **T2
-(optimality)** in the second plan, where "the search returns *the* best route"
-requires the full 4-key order. **Action taken:** added a `-- NOTE (algorithm.md
-§3.5):` comment on `pickMin` in the plan flagging that the arrival-only order is
-a T1-sufficient simplification and must be replaced by the 4-key order before T2.
-No behavioral change to the P0–P3 code.
+For **T1 (soundness)** the tie-break is irrelevant — any returned route is valid
+— so either form is sound. **Progress (plan 2, 2026-06-04):** keys 1–2
+(arrival, then hop count) are now implemented in `pickMin`; integer
+light-second plans carry owlt-0 contacts, making arrival ties pervasive, and
+arrival-only selection returned walk-shaped routes on real lunar plans (39–46
+hops at the correct arrival). Keys 3–4 (termination-time ↓, entry-node ↑)
+remain deferred to **T2 (optimality)**, where "the search returns *the* best
+route" requires the full 4-key order.
 
 **Delta 6 — src = dst returns `none` (Task 5, `routeSearch` + SearchTests):
 CORRECT, confirmed.** Baseline returns `none` for `"A" "A"` via the
