@@ -6,3 +6,5 @@ docs/sources/
 .lake/
 # never commit papers/figures
 *.pdf
+# python tooling
+__pycache__/
