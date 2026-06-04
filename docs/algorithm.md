@@ -275,6 +275,11 @@ reading; §3.2.6.9(c) is the only explicit in-route exclusion, and it concerns X
 specifically. The model forbids reusing any contact, which is strictly inside
 the loopless-paths regime the standard's cited algorithm computes.)
 
+**Executable refinement.** The pseudocode above re-inserts every expansion into
+the frontier unconditionally; the executable search additionally closes each
+contact after its first (earliest-arrival) expansion. §8 pins that refinement,
+its justification, and its one caveat.
+
 ### 3.4 Candidate-route filters — §3.2.6.9
 
 Before a computed route becomes a *candidate*, §3.2.6.9 ignores routes failing
@@ -545,6 +550,154 @@ precise hypothesis boundary, and T3b reproduces the loop phenomenology the
 literature patches heuristically (the §3.2.8.1 NOTE's "history list" remark is
 the standard acknowledging this exact failure mode). This paragraph is a
 candidate statement to be sharpened during the proof, not a fixed theorem.
+
+---
+
+## 8. Search refinement: visited contacts
+
+### 8.1 What the standard does and does not constrain
+
+§3.2.6.10 specifies *what* must be identified — the shortest path from root to
+terminal vertex under the `earliestArr` edge cost — and cites Yen's loopless-
+paths algorithm for the "excluding all previously identified paths" mechanism.
+It does not mandate an exploration strategy for finding that shortest path.
+The exploration order is an implementation choice, constrained only by the
+result: a returned route must satisfy §1.4(a)–(d), the §3.2.4.1.1 feasibility
+test along its hops, and (when candidates compete) the §3.2.8.1.4 selection
+order.
+
+Deployed practice uses Dijkstra with a visited set over contact-vertices: the
+Tutorial's Alg. 1 marks each contact visited when its tentative arrival is
+settled, and ION's CGR (the implementation SABR was standardized from, §5)
+prunes identically. The refinement below mirrors that practice.
+
+### 8.2 The refinement
+
+The executable search (`searchLoop`) carries a **closed list** of contacts.
+When the frontier's minimal-arrival candidate is popped and its terminal
+contact `c` is not yet closed, `c` is closed and the candidate is expanded.
+When a popped candidate's terminal contact is already closed, the candidate is
+dropped without expansion. The root candidate (empty hop list) is never subject
+to closing.
+
+Justification — arrival dominance. The popped occurrence of `c` carries the
+minimal arrival among all frontier candidates, and arrivals never decrease
+along expansions (`earliestArr` recursion, §3.1: `max` with a non-decreasing
+quantity plus a non-negative range). For any later candidate reaching `c` with
+arrival `t' ≥ t`, every contact feasible from `(c, t')` is feasible from
+`(c, t)` (the §3.2.4.1.1 test `max(t, start) ≤ end` is antitone in `t`) and
+yields an arrival no smaller than the one reached via `t`. Exploring the later
+occurrence cannot improve the earliest arrival at the destination.
+
+Soundness is independent of the refinement entirely: `routeSearch` re-checks
+every returned hop list against the validity predicate before returning it
+(the certifying pattern), so closing can only cause `none`, never an invalid
+route. T1's statement and proof obligations are unchanged in kind.
+
+### 8.3 The caveat, stated precisely
+
+The dominance argument quantifies over contacts feasible from `c`; it ignores
+hop *history*. Candidates reaching `c` by different paths exclude different
+contacts under the no-reuse rule (§3.3): if the closing candidate's history
+contains a contact `x` that the dropped candidate's history does not, a
+continuation through `x` was available only to the dropped candidate. A plan
+can therefore exist on which the closed-list search returns a later arrival
+than the unpruned search — or `none` where a route exists — when every
+earliest-arrival continuation from `c` must revisit a contact the closing
+candidate already consumed.
+
+Three consequences are pinned:
+
+- **Soundness (T1): unaffected**, by the certifying check (§8.2).
+- **Completeness/optimality: open**, deferred to the T2 line together with the
+  §3.2.8.1.4 tie-break (Delta 5). Any T2-line statement must either carry a
+  hypothesis excluding the history-divergence pattern or be proved against the
+  closed-list search as actually implemented.
+- **Differential testing: unaffected as an agreement criterion**, because the
+  oracle (ION) closes contacts the same way; both sides explore the same
+  restricted route space. A disagreement therefore still indicates a model or
+  oracle defect, not the pruning itself. That deployed CGR's visited set can in
+  principle exclude loopless earliest-arrival routes appears unremarked in the
+  standard and the Tutorial; it is recorded here as a finding-grade observation
+  for the paper.
+
+### 8.4 Fuel under closing
+
+With the closed list, each contact is expanded at most once, each expansion
+inserts at most `|plan|` candidates, and the initial frontier holds one
+candidate; total pops are bounded by `|plan|² + |plan| + 1`. The executable
+uses `(|plan| + 1)² + 1`, which dominates this bound; the tight bound is a
+T2-line lemma, not a v1 obligation. Exhausting fuel returns `none`, which is
+sound for the same reason as every other `none`.
+
+---
+
+## 9. Differential harness semantics
+
+### 9.1 Plan ingestion (ionrc subset)
+
+The harness feeds the Lean executable and the ION oracle the **same file**: the
+ION-style contact plan (`ionrc`) emitted by the scenario generator. Identical
+inputs by construction; no second quantization layer exists anywhere.
+
+The subset ingested (two line shapes, integer fields, relative times):
+
+```
+a contact +START +END FROM TO RATE
+a range   +START +END FROM TO OWLT
+```
+
+- Node identifiers are ION node numbers; the model treats them as opaque
+  `Node` strings. The generator's name↔number map travels in its plan manifest
+  and is used only for report readability.
+- `RATE` is integer bytes/s (floor-quantized upstream); recorded into `rate`,
+  unread by the v1 search (§4).
+- `OWLT` is the §2.3.1 range in **integer light seconds**, matching what
+  `ionadmin` parses ("constant to within one light second", ionrc(5)). The
+  generator rounds half-up. Sub-light-second cislunar hops legitimately
+  quantize to 0; owlt = 0 is within the model (§3.1 recursion with range 0) and
+  within the standard (§2.3.1 places no positivity constraint) — note the T3a
+  hypothesis (§7) singles out *positive* OWLT precisely because zero permits
+  arrival ties.
+- Contact and range lines are paired by exact `(FROM, TO, START)` match (the
+  generator emits them 1:1). A contact line with no matching range line gets
+  owlt 0; malformed lines are skipped. Both behaviors are deliberate: the
+  harness must never silently repair a plan, only ingest or visibly drop.
+- Forward and reverse contacts are distinct lines (§1 modeling note).
+
+### 9.2 Time base and dispatch alignment
+
+All plan times are integer seconds relative to the plan epoch. ION anchors
+relative times at the wall-clock instant `ionadmin` ingests the rc; `cgrfetch`
+dispatches at wall-now plus a requested offset. The harness records the load
+instant, requests dispatch at the intended plan-relative `t₀`, and queries the
+Lean executable at exactly that `t₀`. Residual wall-clock slop (observed ±2 s)
+is guarded structurally: query times are chosen at least 30 s away from every
+contact START/END in the plan, so no boundary can fall between the two sides'
+effective dispatch times. The slop bound and boundary margin are harness
+parameters, recorded with each run.
+
+### 9.3 Agreement criterion
+
+Per query (source, destination, t₀), in order:
+
+1. **Verdict**: both sides find a route, or both report none. Gating.
+2. **Earliest arrival**: exact equality of the projected arrival time
+   (§3.2.4.2 best-case delivery time). All inputs are integers, so the Lean
+   arrival is an integer rational; the harness asserts integrality and compares
+   exactly. Gating, after one documented transform: if the oracle build applies
+   a constant OWLT margin (§2.4.2 permits one; the model pins 0, §3.1), the
+   measured constant is applied as `arrival_ion = arrival_lean + margin × hops`
+   — measured once on a fixture plan, recorded, never fitted per-plan.
+3. **Hop sequence**: reported, not gating. The v1 `pickMin` orders by arrival
+   alone (Delta 5); ION implements the full §3.2.8.1.4 order, so equal-arrival
+   route choices may legitimately differ. Hop disagreements at *unequal*
+   arrival are impossible by 2; hop disagreements at equal arrival are
+   tabulated as tie-break divergence.
+
+Exit gate (design spec P6): N ≥ 1000 generated plans; every query agrees under
+1–2, or every disagreement is explained in writing as model defect (stop and
+fix), oracle defect (cite), or tie-break divergence under 3.
 
 ---
 
