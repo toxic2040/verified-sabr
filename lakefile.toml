@@ -21,3 +21,7 @@ name = "VerifiedSabr"
 [[lean_lib]]
 name = "VerifiedSabrTests"
 globs = ["VerifiedSabr.Tests.+"]
+
+[[lean_exe]]
+name = "sabrsearch"
+root = "Main"
