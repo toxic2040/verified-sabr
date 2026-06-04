@@ -269,6 +269,33 @@ theorem pickMin_min : ∀ {l : List Cand} {m : Cand} {rest : List Cand},
               · exact ht
             · rw [← hm]; exact ih hp x h1
 
+/-- Arrival monotonicity with feasibility antitonicity, in one statement:
+    departing earlier keeps every window of a feasible hop list feasible and
+    never worsens the final arrival. The §3.2.4.1.1 test `max t start ≤ end`
+    is antitone in `t`, and the §3.1 arrival recursion is monotone in `t`.
+    This is the load-bearing lemma for both T2b reductions (loop erasure and
+    the history-divergence discharge). [algorithm.md §10.3] -/
+theorem arrivalTime_mono : ∀ {hops : List Contact} {t t' a' : Time}, t ≤ t' →
+    arrivalTime t' hops = some a' →
+    ∃ a, arrivalTime t hops = some a ∧ a ≤ a' := by
+  intro hops
+  induction hops with
+  | nil =>
+      intro t t' a' hle h
+      simp only [arrivalTime, Option.some.injEq] at h
+      exact ⟨t, rfl, h ▸ hle⟩
+  | cons c rest ih =>
+      intro t t' a' hle h
+      simp only [arrivalTime] at h ⊢
+      have htx : max t c.tStart ≤ max t' c.tStart :=
+        max_le_max hle le_rfl
+      split at h
+      · rename_i hw'
+        have hw : max t c.tStart ≤ c.tEnd := le_trans htx hw'
+        rw [if_pos hw]
+        exact ih (add_le_add htx le_rfl) h
+      · exact absurd h (by simp)
+
 /-- Invariant carried by every search candidate: its (reversed) hops form a
     plan-drawn chain departing `src`, and its cached arrival time is the real
     one. -/
