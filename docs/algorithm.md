@@ -326,9 +326,9 @@ Keys 1–2 are minimized, key 3 is *maximized*, key 4 is minimized. The Lean
 optimality theorem (T2) and any "the search returns *the* best route" claim must
 use this 4-key order — not arrival alone. `pickMin` selects under the total
 Boolean comparison `Cand.le4` specified in §10.1 (keys 1–2 landed in plan 2;
-keys 3–4 are the T2 plan's first Lean task; Delta 5 tracks status). For T1
-(soundness) the tie-break is irrelevant (any returned route is valid); it is
-load-bearing for T2 (§10).
+keys 3–4 in the T2 plan, 2026-06-04; selection correctness kernel-checked,
+§10.2). For T1 (soundness) the tie-break is irrelevant (any returned route is
+valid); it is load-bearing for T2 (§10).
 
 ### 3.6 Forwarding and the src = dst case
 
@@ -710,11 +710,12 @@ fix), oracle defect (cite), or tie-break divergence under 3.
 
 ## 10. T2: selection correctness and optimality
 
-Status at 2026-06-04 (T2 plan, task 1): this section pins the statements and
-proof strategy. T2a is this plan's proof obligation; T2b's statement is pinned
-with its proof staged. Wording follows the §7 pattern: candidate statements
-are labeled as such, and nothing below claims a proof that does not exist in
-the tree.
+Status at 2026-06-04 (T2 plan, task 3): T2a is proved and kernel-checked
+(`pickMin_min`, `le4_total`, `le4_trans`, plus `le4_refl` and
+`pickMin_eq_none`; axioms = the standard three). T2b's statement is pinned
+below with its proof staged. Wording follows the §7 pattern: candidate
+statements are labeled as such, and nothing below claims a proof that does
+not exist in the tree.
 
 ### 10.1 The model's 4-key comparison (Delta 8 noted)
 
@@ -844,10 +845,10 @@ For **T1 (soundness)** the tie-break is irrelevant — any returned route is val
 (arrival, then hop count) are now implemented in `pickMin`; integer
 light-second plans carry owlt-0 contacts, making arrival ties pervasive, and
 arrival-only selection returned walk-shaped routes on real lunar plans (39–46
-hops at the correct arrival). **Narrowed further (T2 plan, 2026-06-04):**
-keys 3–4 (termination-time ↓, entry-node ↑) are now specified as the total
-comparison `Cand.le4` (§10.1); the Lean implementation is the next task of the
-same plan. Residual faithfulness remainder: the key-4 node order — see
+hops at the correct arrival). **CLOSED (T2 plan, 2026-06-04):**
+keys 3–4 (termination-time ↓, entry-node ↑) are implemented as the total
+comparison `Cand.le4` (§10.1) with selection correctness kernel-checked
+(§10.2). Residual faithfulness remainder: the key-4 node order — see
 Delta 8.
 
 **Delta 6 — src = dst returns `none` (Task 5, `routeSearch` + SearchTests):

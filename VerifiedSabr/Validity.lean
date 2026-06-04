@@ -1,4 +1,5 @@
 import VerifiedSabr.Search
+import Mathlib.Algebra.Order.Ring.Unbundled.Rat
 
 namespace VerifiedSabr
 
@@ -84,6 +85,189 @@ theorem pickMin_mem : ∀ {l : List Cand} {m : Cand} {rest : List Cand},
             rcases List.mem_cons.1 hx with h1 | h1
             · subst h1; exact List.mem_cons_self
             · exact List.mem_cons_of_mem _ (hoth x h1)
+
+/-- `pickMin` answers `none` only on the empty frontier. [algorithm.md §3.5] -/
+theorem pickMin_eq_none : ∀ {l : List Cand}, pickMin l = none → l = [] := by
+  intro l h
+  cases l with
+  | nil => rfl
+  | cons c tl =>
+      simp only [pickMin] at h
+      split at h
+      · simp at h
+      · split at h <;> simp at h
+
+/-- Key-3 comparison is irreflexive. [algorithm.md §10.1] -/
+theorem termLater_irrefl (a : Option Time) : termLater a a = false := by
+  cases a with
+  | none => rfl
+  | some x => simp [termLater]
+
+/-- Key-3 comparison is transitive. [algorithm.md §10.1] -/
+theorem termLater_trans {a b c : Option Time} :
+    termLater a b = true → termLater b c = true → termLater a c = true := by
+  intro h₁ h₂
+  cases a with
+  | none =>
+      cases c with
+      | none =>
+          cases b with
+          | none => simp [termLater] at h₁
+          | some y => simp [termLater] at h₂
+      | some z => rfl
+  | some x =>
+      cases b with
+      | none => simp [termLater] at h₁
+      | some y =>
+          cases c with
+          | none => simp [termLater] at h₂
+          | some z =>
+              simp only [termLater, decide_eq_true_iff] at h₁ h₂ ⊢
+              exact h₂.trans h₁
+
+/-- Key-3 comparison is total up to equality. [algorithm.md §10.1] -/
+theorem termLater_total (a b : Option Time) :
+    termLater a b = true ∨ termLater b a = true ∨ a = b := by
+  cases a with
+  | none =>
+      cases b with
+      | none => exact Or.inr (Or.inr rfl)
+      | some y => exact Or.inl rfl
+  | some x =>
+      cases b with
+      | none => exact Or.inr (Or.inl rfl)
+      | some y =>
+          rcases lt_trichotomy y x with h | h | h
+          · exact Or.inl (by simp [termLater, h])
+          · exact Or.inr (Or.inr (by simp [h]))
+          · exact Or.inr (Or.inl (by simp [termLater, h]))
+
+/-- Key-4 comparison is reflexive. [algorithm.md §10.1] -/
+theorem entryLE_refl (a : Option Node) : entryLE a a = true := by
+  cases a with
+  | none => rfl
+  | some s => simp [entryLE]
+
+/-- Key-4 comparison is total. [algorithm.md §10.1] -/
+theorem entryLE_total (a b : Option Node) :
+    entryLE a b = true ∨ entryLE b a = true := by
+  cases a with
+  | none => exact Or.inl rfl
+  | some s =>
+      cases b with
+      | none => exact Or.inr rfl
+      | some t =>
+          rcases le_total s t with h | h
+          · exact Or.inl (by simp [entryLE, h])
+          · exact Or.inr (by simp [entryLE, h])
+
+/-- Key-4 comparison is transitive. [algorithm.md §10.1] -/
+theorem entryLE_trans {a b c : Option Node} :
+    entryLE a b = true → entryLE b c = true → entryLE a c = true := by
+  intro h₁ h₂
+  cases a with
+  | none => rfl
+  | some s =>
+      cases b with
+      | none => simp [entryLE] at h₁
+      | some t =>
+          cases c with
+          | none => simp [entryLE] at h₂
+          | some u =>
+              simp only [entryLE, decide_eq_true_iff] at h₁ h₂ ⊢
+              exact h₁.trans h₂
+
+/-- The 4-key comparison is reflexive: a full tie resolves left.
+    [algorithm.md §10.1] -/
+theorem le4_refl (c : Cand) : c.le4 c = true := by
+  simp [Cand.le4, termLater_irrefl, entryLE_refl]
+
+/-- T2a totality: of any two candidates, one is at least as good as the
+    other under the §3.2.8.1.4 order. [algorithm.md §10.2] -/
+theorem le4_total (c m : Cand) : c.le4 m = true ∨ m.le4 c = true := by
+  simp only [Cand.le4, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_iff,
+    beq_iff_eq]
+  rcases lt_trichotomy c.arrival m.arrival with h1 | h1 | h1
+  · exact Or.inl (Or.inl h1)
+  · rcases lt_trichotomy c.hops.length m.hops.length with h2 | h2 | h2
+    · exact Or.inl (Or.inr ⟨h1, Or.inl h2⟩)
+    · rcases termLater_total c.termTime m.termTime with h3 | h3 | h3
+      · exact Or.inl (Or.inr ⟨h1, Or.inr ⟨h2, Or.inl h3⟩⟩)
+      · exact Or.inr (Or.inr ⟨h1.symm, Or.inr ⟨h2.symm, Or.inl h3⟩⟩)
+      · rcases entryLE_total c.entry m.entry with h4 | h4
+        · exact Or.inl (Or.inr ⟨h1, Or.inr ⟨h2, Or.inr ⟨h3, h4⟩⟩⟩)
+        · exact Or.inr (Or.inr ⟨h1.symm, Or.inr ⟨h2.symm, Or.inr ⟨h3.symm, h4⟩⟩⟩)
+    · exact Or.inr (Or.inr ⟨h1.symm, Or.inl h2⟩)
+  · exact Or.inr (Or.inl h1)
+
+/-- T2a transitivity of the 4-key comparison. [algorithm.md §10.2] -/
+theorem le4_trans {c d e : Cand} (h₁ : c.le4 d = true) (h₂ : d.le4 e = true) :
+    c.le4 e = true := by
+  simp only [Cand.le4, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_iff,
+    beq_iff_eq] at h₁ h₂ ⊢
+  rcases h₁ with h1 | ⟨e1, h1⟩
+  · rcases h₂ with h2 | ⟨e2, _⟩
+    · exact Or.inl (h1.trans h2)
+    · exact Or.inl (h1.trans_eq e2)
+  · rcases h₂ with h2 | ⟨e2, h2⟩
+    · exact Or.inl (e1.trans_lt h2)
+    · refine Or.inr ⟨e1.trans e2, ?_⟩
+      rcases h1 with h1 | ⟨l1, h1⟩
+      · rcases h2 with h2 | ⟨l2, _⟩
+        · exact Or.inl (h1.trans h2)
+        · exact Or.inl (h1.trans_eq l2)
+      · rcases h2 with h2 | ⟨l2, h2⟩
+        · exact Or.inl (l1.trans_lt h2)
+        · refine Or.inr ⟨l1.trans l2, ?_⟩
+          rcases h1 with h1 | ⟨t1, h1⟩
+          · rcases h2 with h2 | ⟨t2, _⟩
+            · exact Or.inl (termLater_trans h1 h2)
+            · exact Or.inl (t2 ▸ h1)
+          · rcases h2 with h2 | ⟨t2, h2⟩
+            · exact Or.inl (t1.symm ▸ h2)
+            · exact Or.inr ⟨t1.trans t2, entryLE_trans h1 h2⟩
+
+/-- T2a: the candidate `pickMin` extracts is §3.2.8.1.4-minimal over the
+    whole frontier. [algorithm.md §10.2] -/
+theorem pickMin_min : ∀ {l : List Cand} {m : Cand} {rest : List Cand},
+    pickMin l = some (m, rest) → ∀ x ∈ l, m.le4 x = true := by
+  intro l
+  induction l with
+  | nil => intro m rest h; simp [pickMin] at h
+  | cons c tl ih =>
+      intro m rest h x hx
+      simp only [pickMin] at h
+      cases hp : pickMin tl with
+      | none =>
+          rw [hp] at h
+          dsimp only at h
+          injection h with hpair
+          injection hpair with hm _
+          have htl := pickMin_eq_none hp
+          subst htl
+          rcases List.mem_cons.1 hx with h1 | h1
+          · rw [← hm, h1]; exact le4_refl c
+          · simp at h1
+      | some mo =>
+          obtain ⟨mm, others⟩ := mo
+          rw [hp] at h
+          dsimp only at h
+          split at h
+          · rename_i hc
+            injection h with hpair
+            injection hpair with hm _
+            rcases List.mem_cons.1 hx with h1 | h1
+            · rw [← hm, h1]; exact le4_refl c
+            · rw [← hm]; exact le4_trans hc (ih hp x h1)
+          · rename_i hc
+            injection h with hpair
+            injection hpair with hm _
+            rcases List.mem_cons.1 hx with h1 | h1
+            · rw [← hm, h1]
+              rcases le4_total c mm with ht | ht
+              · exact absurd ht hc
+              · exact ht
+            · rw [← hm]; exact ih hp x h1
 
 /-- Invariant carried by every search candidate: its (reversed) hops form a
     plan-drawn chain departing `src`, and its cached arrival time is the real
