@@ -317,15 +317,18 @@ verbatim structure):
    (Termination time = earliest contact end time in the route, §1.4 / §2.3.2.1;
    a later termination time means the route stays usable longer.)
 4. **Smallest entry node number.** Otherwise, the route with the smallest entry
-   node number is chosen arbitrarily to break the remaining tie.
+   node number is chosen arbitrarily to break the remaining tie. (Entry node =
+   the route's first-hop destination — the node the bundle would be enqueued to,
+   §3.2.8.1.4 b. Model definition and the node-order delta: §10.1.)
 
 Order, verbatim: **(arrival ↑, hop-count ↑, termination-time ↓, entry-node ↑)**.
 Keys 1–2 are minimized, key 3 is *maximized*, key 4 is minimized. The Lean
 optimality theorem (T2) and any "the search returns *the* best route" claim must
-use this 4-key order — not arrival alone. The v1 search's `pickMin` currently
-breaks ties only on arrival; see the baseline audit. For T1 (soundness) the
-tie-break is irrelevant (any returned route is valid); it becomes load-bearing
-at T2.
+use this 4-key order — not arrival alone. `pickMin` selects under the total
+Boolean comparison `Cand.le4` specified in §10.1 (keys 1–2 landed in plan 2;
+keys 3–4 are the T2 plan's first Lean task; Delta 5 tracks status). For T1
+(soundness) the tie-break is irrelevant (any returned route is valid); it is
+load-bearing for T2 (§10).
 
 ### 3.6 Forwarding and the src = dst case
 
@@ -705,6 +708,100 @@ fix), oracle defect (cite), or tie-break divergence under 3.
 
 ---
 
+## 10. T2: selection correctness and optimality
+
+Status at 2026-06-04 (T2 plan, task 1): this section pins the statements and
+proof strategy. T2a is this plan's proof obligation; T2b's statement is pinned
+with its proof staged. Wording follows the §7 pattern: candidate statements
+are labeled as such, and nothing below claims a proof that does not exist in
+the tree.
+
+### 10.1 The model's 4-key comparison (Delta 8 noted)
+
+`pickMin` selects under a total Boolean comparison `Cand.le4`, the
+§3.2.8.1.4 a) order applied to search candidates:
+
+1. arrival ↑ (key 1);
+2. hop count ↑ (key 2);
+3. termination time ↓ (key 3): a candidate's termination time is the minimum
+   `tEnd` over its hops — §1.4/§2.3.2.1's "earliest contact end time" — with
+   the root candidate (no hops) ordered as +∞ (no contact yet bounds its
+   usability);
+4. entry node ↑ (key 4): the first hop's destination (§3.2.8.1.4 b's
+   enqueue-to node); the root candidate is ordered first. A full tie on all
+   four keys resolves to the earlier frontier element, instantiating the
+   standard's "arbitrarily."
+
+Node order (Delta 8): the standard compares node *numbers* (CBHE/ipn
+identifiers). The model's `Node` is `String`, and key 4 uses total
+lexicographic string order, which disagrees with numeric order on digit
+strings of unequal length ("10" < "9" lexicographically). Faithful-restriction
+reading: keys 1–3 are standard-exact; at a full keys-1–3 tie the standard
+itself calls the choice arbitrary only after key 4, so the model's winner can
+differ from ION's on plans where keys 1–3 tie and the two node orders
+disagree. The differential agreement criterion (§9.3) compares verdict +
+arrival, not hop identity, so this delta cannot produce a P6-style
+disagreement; it is recorded for any future hop-identity comparison.
+
+### 10.2 T2a — selection correctness
+
+For `pickMin l = some (m, rest)`:
+
+- `m ∈ l`, and every member of `rest` is a member of `l` (`pickMin_mem`,
+  proved in plan 1);
+- `m.le4 x = true` for every `x ∈ l` (`pickMin_min`, this plan's obligation),
+  with `le4` total (`le4_total`) and transitive (`le4_trans`).
+
+Together these say the selection step always extracts a §3.2.8.1.4-minimal
+frontier element. T1 is unaffected by construction: the certifying validity
+re-check never consults the comparison.
+
+### 10.3 T2b — optimality (candidate statement, proof staged)
+
+**Statement (T2b).** If `routeSearch cp src dst t₀ = some r`, then for every
+`hops` with `isValidRoute cp src dst t₀ hops = true`, both arrivals are
+defined and `arrivalTime t₀ r ≤ arrivalTime t₀ hops`.
+
+The competitor class is *all* valid routes — including routes that reuse
+contacts (`isValidRoute` does not require hop distinctness) and routes the
+closed-list search never enumerates (§8.3). Two reductions stage the proof at
+this strength:
+
+- **Loop erasure.** A valid route with a repeated contact admits a
+  distinct-hop valid route arriving no later: cut between the two occurrences
+  of the repeated contact and splice. The prefix reaches the cut no later than
+  the original does (arrival is monotone along hops), and the suffix's windows
+  remain feasible at an earlier arrival (the §3.2.4.1.1 test is antitone in
+  arrival). Induction on hop count terminates the construction. Optimality
+  over distinct-hop routes therefore implies optimality over all valid routes.
+- **History-divergence discharge (the §8.3 caveat).** The §8.2 dominance
+  argument does not cover continuations blocked by the no-reuse rule: the
+  closing candidate's history may contain a contact `x` that a dropped
+  candidate's earliest-arrival continuation needs. Staged discharge: when
+  every earliest-arrival continuation from closed contact `c` reuses some `x`
+  in the closing candidate's history, splice the closing candidate's
+  prefix-up-to-`x` with the continuation's suffix-after-`x`. The prefix
+  reaches `x` no later than any post-`c` reuse of `x` (monotonicity through
+  `c`), so the splice is feasible and arrives no later — and it strictly
+  shortens the combined hop list, so the construction terminates. Every prefix
+  of a popped candidate was itself popped and expanded (expansion happens only
+  on pop), so the spliced route's prefix was explored. If this argument closes
+  in Lean, T2b holds for the closed-list search as implemented,
+  unconditionally — upgrading §8.3's "completeness/optimality: open" to
+  closed, and demoting the finding-grade observation to "real but not
+  arrival-relevant." If it does not close, T2b falls back to the
+  §8.3-sanctioned form carrying an explicit no-history-divergence hypothesis.
+
+### 10.4 Fuel sufficiency
+
+§8.4's accounting: with the closed list, total pops are bounded by
+`|plan|² + |plan| + 1`, and the executable fuel `(|plan|+1)² + 1` dominates
+that. The T2-line obligation is the formal lemma that fuel never expires
+before frontier exhaustion — so a `none` return is a decision ("no route"),
+never a budget accident. This is the completeness half of T2b's proof.
+
+---
+
 ## Baseline audit (internal)
 
 Comparison of §1–§3 above against the pre-Blue-Book baseline Lean code in
@@ -747,9 +844,11 @@ For **T1 (soundness)** the tie-break is irrelevant — any returned route is val
 (arrival, then hop count) are now implemented in `pickMin`; integer
 light-second plans carry owlt-0 contacts, making arrival ties pervasive, and
 arrival-only selection returned walk-shaped routes on real lunar plans (39–46
-hops at the correct arrival). Keys 3–4 (termination-time ↓, entry-node ↑)
-remain deferred to **T2 (optimality)**, where "the search returns *the* best
-route" requires the full 4-key order.
+hops at the correct arrival). **Narrowed further (T2 plan, 2026-06-04):**
+keys 3–4 (termination-time ↓, entry-node ↑) are now specified as the total
+comparison `Cand.le4` (§10.1); the Lean implementation is the next task of the
+same plan. Residual faithfulness remainder: the key-4 node order — see
+Delta 8.
 
 **Delta 6 — src = dst returns `none` (Task 5, `routeSearch` + SearchTests):
 CORRECT, confirmed.** Baseline returns `none` for `"A" "A"` via the
@@ -762,9 +861,18 @@ Tutorial Fig. 3 plan, A→E, t₀ = 0, expected `[#5/6, #7/8, #11/12]`, arrival 
 **Action taken:** noted in the plan that the §6 example is the Tutorial A→E case
 with the exact assertions listed in §6.
 
+**Delta 8 — key-4 node order (T2 plan, 2026-06-04): DIVERGENCE, documented.**
+The standard's key 4 compares node *numbers*; the model's `Node` is `String`
+and `Cand.le4` uses total lexicographic string order (§10.1). The orders
+disagree on digit strings of unequal length. Consequence is confined to the
+choice among routes tied on keys 1–3 — a choice the standard finalizes only at
+key 4 — and cannot affect the §9.3 agreement criterion (verdict + arrival).
+Recorded for any future hop-identity-level differential comparison.
+
 **Net:** the time-only baseline is faithful to CCSDS 734.3-B-1 for the P0–P3
-(T1 soundness) scope. The only standard-vs-baseline divergence is the
-tie-break (Delta 5), which is correct to defer to T2 and is now flagged in the
-plan. The volume layer (§4) is an explicit, documented restriction, not a
+(T1 soundness) scope. The standard-vs-model divergences are the tie-break
+(Delta 5 — narrowed to keys 3–4 implementation in flight under the T2 plan)
+and the key-4 node order (Delta 8 — documented, agreement-criterion-neutral).
+The volume layer (§4) is an explicit, documented restriction, not a
 divergence. Field set, interval semantics (closed at end), and arrival recursion
 all match the standard.
