@@ -1,5 +1,4 @@
 # internal working material — not part of the public artifact
-CLAUDE.md
 docs/plans/
 docs/sources/
 # build
@@ -8,3 +7,8 @@ docs/sources/
 *.pdf
 # python tooling
 __pycache__/
+# ion runtime and differential-run byproducts
+ion.log
+route.gv
+route.svg.base64
+out_diff*/
