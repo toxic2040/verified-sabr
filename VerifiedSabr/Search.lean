@@ -1,4 +1,5 @@
 import VerifiedSabr.Route
+import Mathlib.Data.String.Basic
 
 namespace VerifiedSabr
 
@@ -15,23 +16,66 @@ def Cand.node (cand : Cand) (src : Node) : Node :=
   | [] => src
   | c :: _ => c.dest
 
-/-- Extract a minimal candidate from a nonempty frontier under the first two
-    keys of the standard's best-route order (CCSDS §3.2.8.1.4 a): earliest
-    arrival, then fewest contacts. Keys 3–4 (termination-time ↓, entry-node ↑)
-    remain pending for T2; either choice is T1-sound (any returned route is
-    valid regardless of which minimal candidate is chosen). Key 2 matters in
-    practice: integer light-second plans carry owlt-0 contacts, so arrival
-    ties are pervasive and arrival-only selection returns walk-shaped routes.
-    [algorithm.md §3.5] -/
+/-- Candidate termination time: the earliest contact end time among its hops
+    (§1.4 / §2.3.2.1); `none` for the root candidate, ordered as +∞ — no
+    contact yet bounds the candidate's usability. [algorithm.md §10.1] -/
+def Cand.termTime (cand : Cand) : Option Time :=
+  cand.hops.foldr
+    (fun c acc =>
+      match acc with
+      | none => some c.tEnd
+      | some t => some (min c.tEnd t))
+    none
+
+/-- Candidate entry node: destination of the first hop — the node the bundle
+    would be enqueued to (§3.2.8.1.4 b); `none` for the root candidate.
+    Hops are stored most-recent-first, so the first hop is the last list
+    element. [algorithm.md §10.1] -/
+def Cand.entry (cand : Cand) : Option Node :=
+  cand.hops.getLast?.map (·.dest)
+
+/-- Key-3 strict comparison: `a` terminates later than `b`, with `none` as +∞
+    (the root candidate outlasts every bounded one). [algorithm.md §10.1] -/
+def termLater : Option Time → Option Time → Bool
+  | none,   none   => false
+  | none,   some _ => true
+  | some _, none   => false
+  | some x, some y => decide (y < x)
+
+/-- Key-4 comparison: entry-node order with the root (`none`) first; node
+    strings compare lexicographically (Delta 8). [algorithm.md §10.1] -/
+def entryLE : Option Node → Option Node → Bool
+  | none,   _      => true
+  | some _, none   => false
+  | some s, some t => decide (s ≤ t)
+
+/-- The §3.2.8.1.4 a) best-route order as a total comparison on candidates:
+    arrival ↑, hop count ↑, termination time ↓, entry node ↑. A full tie
+    resolves to the left argument, instantiating the standard's
+    "arbitrarily." [algorithm.md §3.5, §10.1] -/
+def Cand.le4 (c m : Cand) : Bool :=
+  decide (c.arrival < m.arrival)
+  || (c.arrival == m.arrival
+      && (decide (c.hops.length < m.hops.length)
+          || (c.hops.length == m.hops.length
+              && (termLater c.termTime m.termTime
+                  || (c.termTime == m.termTime
+                      && entryLE c.entry m.entry)))))
+
+/-- Extract a minimal candidate from a nonempty frontier under the standard's
+    full best-route order (CCSDS §3.2.8.1.4 a), via the total comparison
+    `Cand.le4`. Either choice among tied candidates is T1-sound (any returned
+    route is valid); the full order is load-bearing for T2 (§10.2). Key 2
+    matters in practice: integer light-second plans carry owlt-0 contacts, so
+    arrival ties are pervasive and arrival-only selection returns walk-shaped
+    routes. [algorithm.md §3.5, §10.1] -/
 def pickMin : List Cand → Option (Cand × List Cand)
   | [] => none
   | c :: rest =>
       match pickMin rest with
       | none => some (c, [])
       | some (m, others) =>
-          if c.arrival < m.arrival
-              ∨ (c.arrival = m.arrival ∧ c.hops.length ≤ m.hops.length) then
-            some (c, rest)
+          if c.le4 m then some (c, rest)
           else some (m, c :: others)
 
 /-- All feasible one-contact extensions of a candidate. A contact is feasible

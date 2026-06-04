@@ -69,14 +69,14 @@ theorem pickMin_mem : ∀ {l : List Cand} {m : Cand} {rest : List Cand},
       | some mo =>
           obtain ⟨mm, others⟩ := mo
           rw [hp] at h
-          by_cases hc : c.arrival < mm.arrival
-              ∨ (c.arrival = mm.arrival ∧ c.hops.length ≤ mm.hops.length)
-          · simp only [hc, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at h
-            obtain ⟨hm, hrest⟩ := h
+          dsimp only at h
+          split at h
+          · injection h with hpair
+            injection hpair with hm hrest
             subst hm; subst hrest
             exact ⟨List.mem_cons_self, by intro x hx; exact List.mem_cons_of_mem _ hx⟩
-          · simp only [hc, ↓reduceIte, Option.some.injEq, Prod.mk.injEq] at h
-            obtain ⟨hm, hrest⟩ := h
+          · injection h with hpair
+            injection hpair with hm hrest
             subst hm; subst hrest
             obtain ⟨hmm, hoth⟩ := ih hp
             refine ⟨List.mem_cons_of_mem _ hmm, ?_⟩
