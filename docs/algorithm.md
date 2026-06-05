@@ -710,12 +710,15 @@ fix), oracle defect (cite), or tie-break divergence under 3.
 
 ## 10. T2: selection correctness and optimality
 
-Status at 2026-06-04 (T2 plan, task 3): T2a is proved and kernel-checked
+Status at 2026-06-04 (T2 plan, task 4): T2a is proved and kernel-checked
 (`pickMin_min`, `le4_total`, `le4_trans`, plus `le4_refl` and
-`pickMin_eq_none`; axioms = the standard three). T2b's statement is pinned
-below with its proof staged. Wording follows the §7 pattern: candidate
-statements are labeled as such, and nothing below claims a proof that does
-not exist in the tree.
+`pickMin_eq_none`; axioms = the standard three). On the T2b line, the
+arrival-monotonicity cornerstone (`arrivalTime_mono`), the splicing
+machinery, and the loop-erasure reduction (`loop_erasure`) are proved and
+kernel-checked; the history-divergence discharge and fuel sufficiency
+remain staged. Wording follows the §7 pattern: candidate statements are
+labeled as such, and nothing below claims a proof that does not exist in
+the tree.
 
 ### 10.1 The model's 4-key comparison (Delta 8 noted)
 
@@ -759,22 +762,47 @@ re-check never consults the comparison.
 
 ### 10.3 T2b — optimality (candidate statement, proof staged)
 
-**Statement (T2b).** If `routeSearch cp src dst t₀ = some r`, then for every
-`hops` with `isValidRoute cp src dst t₀ hops = true`, both arrivals are
-defined and `arrivalTime t₀ r ≤ arrivalTime t₀ hops`.
+**Statement (T2b).** If every contact of `cp` has nonnegative owlt and
+`routeSearch cp src dst t₀ = some r`, then for every `hops` with
+`isValidRoute cp src dst t₀ hops = true`, both arrivals are defined and
+`arrivalTime t₀ r ≤ arrivalTime t₀ hops`.
+
+**Nonnegative owlt is load-bearing (found at task 4).** The model's
+`owlt : ℚ` is sign-unconstrained; the standard's range is a light time and
+never negative. With a negative owlt, T2b itself is false — not merely this
+proof route: a contact whose traversal moves time backward lets a route
+lower its arrival by traversing the same contact repeatedly, while the
+search's no-reuse rule (§3.3, §3.2.6.10 loopless paths) caps every returned
+candidate at one traversal per contact. Witness: `x : A→A` on `[-1000, 100]`
+with owlt `-10`, `y : A→B` on `[-1000, -15]` with owlt `0`, `t₀ = 0`. Then
+`[x, x, y]` is valid and arrives at `-20` (each `x` pass subtracts 10, and
+`y`'s window is still open at `-20`), its splice `[x, y]` reaches `y` at
+`-10` — after `y`'s window closed — and further `x` passes drive arrival
+arbitrarily low. The hypothesis enters the erasure lemma as `0 ≤ c.owlt`
+over the route's hops; at the T2b level it is discharged plan-wide, since
+`isValidRoute` draws every competitor's hops from the plan. It costs
+nothing physically and is checkable on ingested plans.
 
 The competitor class is *all* valid routes — including routes that reuse
 contacts (`isValidRoute` does not require hop distinctness) and routes the
 closed-list search never enumerates (§8.3). Two reductions stage the proof at
 this strength:
 
-- **Loop erasure.** A valid route with a repeated contact admits a
-  distinct-hop valid route arriving no later: cut between the two occurrences
-  of the repeated contact and splice. The prefix reaches the cut no later than
-  the original does (arrival is monotone along hops), and the suffix's windows
-  remain feasible at an earlier arrival (the §3.2.4.1.1 test is antitone in
-  arrival). Induction on hop count terminates the construction. Optimality
-  over distinct-hop routes therefore implies optimality over all valid routes.
+- **Loop erasure (proved, kernel-checked: `loop_erasure`).** A valid route
+  whose hops carry nonnegative owlt admits a duplicate-free valid route,
+  drawn from the same hops, arriving no later. Any duplicate yields the
+  decomposition `hops = pre ++ x :: (mid ++ x :: post)`; splice to
+  `pre ++ x :: post`. The splice enters `x :: post` at the prefix's
+  arrival, which is no later than the original's entry after the erased
+  `x :: mid` segment (`departure_le_arrivalTime`: threading nonneg-owlt
+  contacts never moves time backward — this is where the hypothesis bites),
+  so `arrivalTime_mono` keeps `x :: post` feasible at an arrival no later
+  (`arrivalTime_splice`). Adjacency reassembles on both sides of `x`
+  (`chainOk_middle`: a chain splits around a middle element), and both
+  endpoints are unchanged. One splice strictly shortens the hop list, so
+  induction on length terminates in a duplicate-free route. Optimality over
+  distinct-hop routes on a nonneg-owlt plan therefore implies optimality
+  over all valid routes.
 - **History-divergence discharge (the §8.3 caveat).** The §8.2 dominance
   argument does not cover continuations blocked by the no-reuse rule: the
   closing candidate's history may contain a contact `x` that a dropped

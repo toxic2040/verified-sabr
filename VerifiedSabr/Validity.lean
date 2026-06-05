@@ -296,6 +296,179 @@ theorem arrivalTime_mono : ∀ {hops : List Contact} {t t' a' : Time}, t ≤ t' 
         exact ih (add_le_add htx le_rfl) h
       · exact absurd h (by simp)
 
+/-- `arrivalTime` over an append: thread the prefix, then the suffix from the
+    prefix's arrival. Generalizes the single-contact `arrivalTime_append`.
+    [algorithm.md §3, §10.3] -/
+theorem arrivalTime_append_bind (t : Time) (l₁ l₂ : List Contact) :
+    arrivalTime t (l₁ ++ l₂)
+      = (arrivalTime t l₁).bind fun a => arrivalTime a l₂ := by
+  induction l₁ generalizing t with
+  | nil => simp [arrivalTime]
+  | cons c rest ih =>
+      simp only [List.cons_append, arrivalTime]
+      by_cases hc : max t c.tStart ≤ c.tEnd
+      · simp [hc, ih]
+      · simp [hc]
+
+/-- Threading nonneg-owlt contacts never moves time backward: the departure
+    time is a lower bound on any defined arrival. This is the only place the
+    T2b nonneg-owlt hypothesis bites. [algorithm.md §10.3] -/
+theorem departure_le_arrivalTime : ∀ {l : List Contact} {t a : Time},
+    (∀ c ∈ l, 0 ≤ c.owlt) → arrivalTime t l = some a → t ≤ a := by
+  intro l
+  induction l with
+  | nil =>
+      intro t a _ h
+      simp only [arrivalTime, Option.some.injEq] at h
+      exact le_of_eq h
+  | cons c rest ih =>
+      intro t a hnn h
+      simp only [arrivalTime] at h
+      split at h
+      · have h1 : t ≤ max t c.tStart + c.owlt :=
+          le_trans (le_max_left t c.tStart)
+            (le_add_of_nonneg_right (hnn c List.mem_cons_self))
+        exact le_trans h1 (ih (fun d hd => hnn d (List.mem_cons_of_mem _ hd)) h)
+      · exact absurd h (by simp)
+
+/-- A chain splits around a middle element: the prefix chained through `x`
+    and `x` chained into the suffix, independently. [algorithm.md §2, §10.3] -/
+theorem chainOk_middle (l₁ l₂ : List Contact) (x : Contact) :
+    chainOk (l₁ ++ x :: l₂) = (chainOk (l₁ ++ [x]) && chainOk (x :: l₂)) := by
+  induction l₁ with
+  | nil => simp [chainOk]
+  | cons d rest ih =>
+      cases rest with
+      | nil => simp [chainOk]
+      | cons e tl =>
+          simp only [List.cons_append]
+          conv_lhs => rw [chainOk]
+          conv_rhs => rw [chainOk]
+          rw [← List.cons_append, ← List.cons_append, ih, Bool.and_assoc]
+
+/-- Any list with a duplicate splits as `pre ++ x :: (mid ++ x :: post)`.
+    [algorithm.md §10.3] -/
+private theorem exists_splice_decomp {α : Type*} {l : List α}
+    (h : ¬l.Nodup) : ∃ pre x mid post, l = pre ++ x :: (mid ++ x :: post) := by
+  induction l with
+  | nil => exact absurd List.nodup_nil h
+  | cons c rest ih =>
+      by_cases hc : c ∈ rest
+      · obtain ⟨mid, post, hsplit⟩ := List.append_of_mem hc
+        exact ⟨[], c, mid, post, by rw [hsplit, List.nil_append]⟩
+      · have hr : ¬rest.Nodup := fun hn => h (List.nodup_cons.mpr ⟨hc, hn⟩)
+        obtain ⟨pre, x, mid, post, hrest⟩ := ih hr
+        exact ⟨c :: pre, x, mid, post, by rw [hrest, List.cons_append]⟩
+
+/-- One splice: cutting a feasible hop list between two occurrences of a
+    repeated contact keeps it feasible and never worsens arrival, provided
+    the erased segment moves time forward (nonneg owlt). The splice enters
+    `x :: post` at the prefix's arrival, no later than the original's entry
+    after `x :: mid`, so `arrivalTime_mono` carries it. [algorithm.md §10.3] -/
+theorem arrivalTime_splice {t₀ a : Time} {pre mid post : List Contact}
+    {x : Contact} (hnn : ∀ c ∈ x :: mid, 0 ≤ c.owlt)
+    (h : arrivalTime t₀ (pre ++ x :: (mid ++ x :: post)) = some a) :
+    ∃ a', arrivalTime t₀ (pre ++ x :: post) = some a' ∧ a' ≤ a := by
+  rw [← List.cons_append, arrivalTime_append_bind] at h
+  cases hp : arrivalTime t₀ pre with
+  | none => rw [hp] at h; simp at h
+  | some tp =>
+      rw [hp] at h
+      simp only [Option.bind_some] at h
+      rw [arrivalTime_append_bind] at h
+      cases hm : arrivalTime tp (x :: mid) with
+      | none => rw [hm] at h; simp at h
+      | some tm =>
+          rw [hm] at h
+          simp only [Option.bind_some] at h
+          have htp : tp ≤ tm := departure_le_arrivalTime hnn hm
+          obtain ⟨a', ha', hle⟩ := arrivalTime_mono htp h
+          refine ⟨a', ?_, hle⟩
+          rw [arrivalTime_append_bind, hp]
+          simp only [Option.bind_some]
+          exact ha'
+
+/-- Length-bounded loop erasure, the induction engine behind `loop_erasure`:
+    each splice strictly shortens the hop list. [algorithm.md §10.3] -/
+private theorem loop_erasure_bounded (cp : ContactPlan) (src dst : Node)
+    (t₀ : Time) : ∀ (n : Nat) (hops : List Contact) (a : Time),
+    hops.length ≤ n → (∀ c ∈ hops, 0 ≤ c.owlt) →
+    isValidRoute cp src dst t₀ hops = true →
+    arrivalTime t₀ hops = some a →
+    ∃ hops' a', hops'.Nodup ∧ (∀ c ∈ hops', c ∈ hops)
+      ∧ isValidRoute cp src dst t₀ hops' = true
+      ∧ arrivalTime t₀ hops' = some a' ∧ a' ≤ a := by
+  intro n
+  induction n with
+  | zero =>
+      intro hops a hlen _ hv _
+      cases hops with
+      | nil => simp [isValidRoute] at hv
+      | cons c tl => simp only [List.length_cons] at hlen; omega
+  | succ n ih =>
+      intro hops a hlen hnn hv ha
+      by_cases hnd : hops.Nodup
+      · exact ⟨hops, a, hnd, fun _ hc => hc, hv, ha, le_rfl⟩
+      · obtain ⟨pre, x, mid, post, hdec⟩ := exists_splice_decomp hnd
+        subst hdec
+        have hsubset : ∀ c ∈ pre ++ x :: post,
+            c ∈ pre ++ x :: (mid ++ x :: post) := by
+          intro c hc
+          simp only [List.mem_append, List.mem_cons] at hc ⊢
+          rcases hc with h1 | h1 | h1
+          · exact Or.inl h1
+          · exact Or.inr (Or.inl h1)
+          · exact Or.inr (Or.inr (Or.inr (Or.inr h1)))
+        have hnnseg : ∀ c ∈ x :: mid, 0 ≤ c.owlt := by
+          intro c hc
+          apply hnn
+          simp only [List.mem_cons] at hc
+          simp only [List.mem_append, List.mem_cons]
+          rcases hc with h1 | h1
+          · exact Or.inr (Or.inl h1)
+          · exact Or.inr (Or.inr (Or.inl h1))
+        obtain ⟨a₁, ha₁, hle₁⟩ := arrivalTime_splice hnnseg ha
+        have hv' : isValidRoute cp src dst t₀ (pre ++ x :: post) = true := by
+          simp only [isValidRoute, Bool.and_eq_true] at hv ⊢
+          obtain ⟨⟨⟨⟨⟨_, e2⟩, e3⟩, e4⟩, e5⟩, _⟩ := hv
+          refine ⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩, ?_⟩, ?_⟩
+          · cases pre <;> simp
+          · have hhead : (pre ++ x :: post).head?
+                = (pre ++ x :: (mid ++ x :: post)).head? := by simp
+            rw [hhead]; exact e2
+          · have hlast : (pre ++ x :: post).getLast?
+                = (pre ++ x :: (mid ++ x :: post)).getLast? := by
+              simp [List.getLast?_cons]
+            rw [hlast]; exact e3
+          · rw [chainOk_middle, Bool.and_eq_true] at e4 ⊢
+            refine ⟨e4.1, ?_⟩
+            have h2 := e4.2
+            rw [← List.cons_append, chainOk_middle, Bool.and_eq_true] at h2
+            exact h2.2
+          · rw [List.all_eq_true] at e5 ⊢
+            exact fun c hc => e5 c (hsubset c hc)
+          · rw [ha₁]; exact Option.isSome_some
+        have hlen' : (pre ++ x :: post).length ≤ n := by
+          simp only [List.length_append, List.length_cons] at hlen ⊢
+          omega
+        obtain ⟨hops', a', hnd', hsub', hv'', ha'', hle''⟩ :=
+          ih (pre ++ x :: post) a₁ hlen' (fun c hc => hnn c (hsubset c hc)) hv' ha₁
+        exact ⟨hops', a', hnd', fun c hc => hsubset c (hsub' c hc), hv'', ha'',
+          le_trans hle'' hle₁⟩
+
+/-- T2b loop-erasure reduction: a valid route whose hops all carry
+    nonnegative owlt admits a duplicate-free valid route, drawn from the
+    same hops, arriving no later. Reduces the T2b competitor class from all
+    valid routes to distinct-hop routes. [algorithm.md §10.3] -/
+theorem loop_erasure {cp : ContactPlan} {src dst : Node} {t₀ : Time}
+    {hops : List Contact} {a : Time} (hnn : ∀ c ∈ hops, 0 ≤ c.owlt)
+    (hv : isValidRoute cp src dst t₀ hops = true)
+    (ha : arrivalTime t₀ hops = some a) :
+    ∃ hops' a', hops'.Nodup ∧ (∀ c ∈ hops', c ∈ hops)
+      ∧ isValidRoute cp src dst t₀ hops' = true
+      ∧ arrivalTime t₀ hops' = some a' ∧ a' ≤ a :=
+  loop_erasure_bounded cp src dst t₀ hops.length hops a le_rfl hnn hv ha
+
 /-- Invariant carried by every search candidate: its (reversed) hops form a
     plan-drawn chain departing `src`, and its cached arrival time is the real
     one. -/

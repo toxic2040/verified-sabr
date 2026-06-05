@@ -28,4 +28,19 @@ def plan : ContactPlan := [cAB, cBC, cXY]
 #guard isValidRoute plan "B" "C" 0 [cAB, cBC] == false   -- wrong origin
 #guard isValidRoute [cAB] "A" "C" 0 [cAB, cBC] == false  -- cBC not in plan
 
+def cAA : Contact := { source := "A", dest := "A", tStart := 0, tEnd := 100, owlt := 1 }
+-- algorithm.md §10.3 nonneg-owlt necessity witness: negative-owlt self-loop
+-- plus an exit contact whose window closes before any single pass arrives.
+def cAAneg : Contact := { source := "A", dest := "A", tStart := -1000, tEnd := 100, owlt := -10 }
+def cABlate : Contact := { source := "A", dest := "B", tStart := -1000, tEnd := -15, owlt := 0 }
+
+-- loop erasure (§10.3): with nonneg owlt the splice arrives no later
+#guard arrivalTime 0 [cAA, cAA, cAB] == some 3
+#guard arrivalTime 0 [cAA, cAB] == some 2
+-- §10.3 necessity: with negative owlt the looped route is valid and arrives
+-- strictly earlier, while its splice misses the exit window entirely
+#guard isValidRoute [cAAneg, cABlate] "A" "B" 0 [cAAneg, cAAneg, cABlate] == true
+#guard arrivalTime 0 [cAAneg, cAAneg, cABlate] == some (-20)
+#guard arrivalTime 0 [cAAneg, cABlate] == none
+
 end VerifiedSabr.Tests.Route
