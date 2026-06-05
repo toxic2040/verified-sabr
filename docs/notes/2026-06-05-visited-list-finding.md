@@ -110,20 +110,49 @@ unpinned candidate list (the strong all-valid-routes reading is graded;
 the list-relative reading is the conformance escape hatch and is itself
 a finding about the standard).
 
-Results, 4093 dispatches (ION on 3876; 217 window-thread-ambiguous
-flagged): lean 2020 conformant / 0 key-2 excess / 2024 key-3 deviations
-/ 49 key-4 deviations (all 49 the predicted Delta-8 digit-length cases);
-ION 2526 conformant / 509 key-2 excess / 840 key-3 / 1 key-4. So the
-finding generalizes: keys 2–4 are explored-set-relative in BOTH
-implementations, with complementary profiles — the visited set holds
-key 2 perfectly and pays at key 3; ION's route-list does the reverse.
-Equal-hop tie divergences decompose as 1691 lean-deviates / 515
-ion-deviates / 128 both / 2 genuinely arbitrary. The key-1 oracle
-agreed with the recorded optimum on all 4093 dispatches: the arrival
-guarantee (T2b) is confirmed two-sided over the unbounded class, and
-everything above key 1 is where conformance lives. Mechanism hypotheses
-for the complementary profiles await an ION source read before being
-asserted.
+Results, 4093 dispatches: lean 2020 conformant / 0 key-2 excess / 2024
+key-3 deviations / 49 key-4 deviations; ION 2526 conformant / 512 key-2
+excess / 1054 key-3 / 1 key-4 (thread ambiguity bounded and then
+resolved by mechanism — see below). So the finding generalizes: keys
+2–4 are explored-set-relative in BOTH implementations, with
+complementary profiles — the search holds key 2 perfectly and pays at
+keys 3–4; ION's route-list does the reverse. Equal-hop tie divergences
+decompose as 1691 lean-deviates / 614 ion-deviates / 156 both / 2
+genuinely arbitrary. The key-1 oracle agreed with the recorded optimum
+on all 4093 dispatches: the arrival guarantee (T2b) is confirmed
+two-sided over the unbounded class, and everything above key 1 is where
+conformance lives.
+
+Provenance correction (2026-06-05, after the source reads): the routes
+the audit graded were produced by the binary built at 66948c9, whose
+pickMin is two-key (arrival, hop count) — the full 4-key comparison
+(3e4d2a0) postdates the recording. Two consequences, both established
+by route-exact mirrors of each construction (predict.py, 4093/4093 on
+both sides):
+
+- The 2024 key-3 deviations decompose as 1841 comparator-caused (the
+  spec-better route sat in the frontier at return; the recording
+  comparator never consulted termination) + 183 closing-caused (the
+  visited list killed the better route's prefix). The visited list's
+  measured field price at key 3 is 183 dispatches; the §8.3 history
+  mechanism is real but accounts for under a tenth of the recorded
+  deviations.
+- The earlier attribution of the 49 key-4 cases to the Delta-8 string
+  order was wrong for this data: the recording comparator had no entry
+  key. The {10,11,12}-over-{2,8} pattern is frontier-order emergence
+  (prepended expansions reverse the plan file's numeric to-node order);
+  the dominating smaller-entry candidate was enumerated every time.
+  The string-order mechanism remains a property of the current source
+  (pinned by SearchTests), and its field behavior is now measured: the
+  rebuilt 4-key binary deviates at key 4 on 106 dispatches - the same
+  49 plus 57 new digit-length cases the frontier order had gotten
+  right - while key-3 deviations collapse to the 210 closing-caused
+  ones and conformance rises to 3777/4093.
+
+Full mechanism accounts, the clause-level location of the standard's
+underspecification (§3.2.5.1 b) vs §3.2.6.9.1), the quantifier-reading
+exhaustion, and the thread-ambiguity bounds live in
+2026-06-05-sabr-degrees-of-freedom.md.
 
 ## Boundary
 

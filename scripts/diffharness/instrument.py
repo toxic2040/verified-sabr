@@ -90,16 +90,23 @@ def key1_oracle(adj, src, dst, t0):
     return best.get(dst)
 
 
-def grading_oracle(adj, src, dst, t0, a, depth):
+def grading_oracle(adj, src, dst, t0, a, depth, filter_c=True):
     """All chains (reuse allowed) up to `depth`, pruned at arrival > a.
     Returns (h, minTermEnd, entryNode) tuples of routes arriving exactly
-    at a. Complete for hop/term/entry grading at depths <= `depth`."""
+    at a. Complete for hop/term/entry grading at depths <= `depth`.
+
+    filter_c applies 3.2.6.9 c): a route that includes any contact
+    delivering back to the forwarding node X is not a candidate (loopback
+    aside, which the corpus never exercises). The v2 audit omitted this
+    filter; v3 grades on the filtered universe and reports the delta."""
     tuples = []
 
     def dfs(node, t, d, term, entry):
         if d >= depth:
             return
         for c in adj[node]:
+            if filter_c and c[1] == src:
+                continue
             tx = t if t > c[2] else c[2]
             if tx > c[3]:
                 continue
@@ -143,18 +150,38 @@ def main():
     ap.add_argument("--corpus", required=True,
                     help="corpus root holding <plan_id>/contact_plan.ionrc")
     ap.add_argument("--out", default="out_diff_v3/instrumentation_report.json")
+    ap.add_argument("--dump", default=None,
+                    help="per-dispatch grade records, one JSON line each")
+    ap.add_argument("--predictions", default=None,
+                    help="predict.py output; cross-checks predicted routes"
+                         " against recorded grades per dispatch")
     args = ap.parse_args()
 
     corpus = Path(args.corpus)
     owlt_hist = Counter()
     plan_cache, nm_cache, adj_cache, ctab_cache = {}, {}, {}, {}
 
-    found = none_none = ambiguous = 0
+    preds = {}
+    if args.predictions:
+        for line in open(args.predictions):
+            rec = json.loads(line)
+            if "error" in rec:
+                continue
+            for q in rec["queries"]:
+                preds[(rec["plan_id"], q["src"], q["dst"], q["t0"])] = q
+
+    dump = open(args.dump, "w") if args.dump else None
+
+    found = none_none = multiterm = grade_ambiguous = 0
     grades = Counter()
+    bound_extra = Counter()     # grade -> count of swing dispatches allowing it
     eqhop_buckets = Counter()
+    eqhop_excluded = 0
     tie_count = 0
+    filter_c_changed = 0
     lean_k4 = []
     lean_offenders_k2 = []
+    pred_check = Counter()
 
     for line in open(args.results):
         rec = json.loads(line)
@@ -200,11 +227,16 @@ def main():
                       file=sys.stderr)
                 sys.exit(1)
 
-            tuples = grading_oracle(adj, src, dst, t0, a, max(len(lh), len(ih)))
+            depth = max(len(lh), len(ih))
+            tuples = grading_oracle(adj, src, dst, t0, a, depth)
             if not tuples:
                 print(f"GRADING ORACLE EMPTY {pid}", file=sys.stderr)
                 sys.exit(1)
             sopt = spec_optimum(tuples)
+            sopt_u = spec_optimum(grading_oracle(adj, src, dst, t0, a,
+                                                 depth, filter_c=False))
+            if sopt != sopt_u:
+                filter_c_changed += 1
 
             # lean tuple: (from, to, tStart) triples identify contacts
             lterm = min(next(c for c in ctab[(f, t)] if c[2] == ts)[3]
@@ -221,8 +253,13 @@ def main():
                                 "lean_entry": ltuple[2],
                                 "spec_entry": sopt[2]})
 
-            # ion tuple: (from, to) pairs thread over candidate windows;
-            # ambiguity flagged, never guessed
+            # ion: (from, to) pairs thread over candidate windows. Hop
+            # count and entry node are thread-invariant; only the
+            # termination time can swing. A dispatch is ambiguous only
+            # when the GRADE swings across thread resolutions - a
+            # multi-term thread whose resolutions all grade alike is
+            # determinate (v2 flagged these; the bounds make the
+            # distinction exact).
             threads = [(t0, None)]
             for f, t in ih:
                 nxt = []
@@ -239,42 +276,133 @@ def main():
                 print(f"ION THREAD INCONSISTENT {pid}", file=sys.stderr)
                 sys.exit(1)
             if len(terms) > 1:
-                ambiguous += 1
-                grades["ion_ambiguous"] += 1
-            else:
-                ituple = (len(ih), terms[0], ih[0][1])
-                ig = grade(ituple, sopt)
+                multiterm += 1
+            possible = sorted(set(grade((len(ih), t, ih[0][1]), sopt)
+                                  for t in terms))
+            ig = None
+            if len(possible) == 1:
+                ig = possible[0]
                 grades["ion_" + ig] += 1
+                ituple = (len(ih), terms[0], ih[0][1])
                 if not q["agree_hops"] and len(lh) == len(ih):
                     eqhop_buckets[("lean_dev" if ltuple != sopt else "lean_ok")
                                   + "/" +
-                                  ("ion_dev" if ituple != sopt else "ion_ok")
-                                  ] += 1
+                                  ("ion_dev" if ig != "conformant"
+                                   else "ion_ok")] += 1
+            else:
+                grade_ambiguous += 1
+                for g in possible:
+                    bound_extra[g] += 1
+                if not q["agree_hops"] and len(lh) == len(ih):
+                    eqhop_excluded += 1
 
             if sum(n for n, _, _ in [(t[0], 0, 0) for t in tuples]
                    if n <= len(lh)) >= 2:
                 tie_count += 1
 
+            # predicted-route cross-check: the mirrors' routes must carry
+            # the same graded tuples as the recorded routes, and the ION
+            # mirror's window choice must be one of the thread resolutions
+            key = (pid, q["src"], q["dst"], t0)
+            p = preds.get(key)
+            pl = pi = None
+            if p:
+                lp, ip = p.get("lean_pred"), p.get("ion_pred")
+                if lp:
+                    plterm = min(next(c for c in ctab[(f, t)]
+                                      if c[2] == ts)[3]
+                                 for f, t, ts in lp["hops"])
+                    pl = (len(lp["hops"]), plterm, lp["hops"][0][1])
+                    pred_check["lean_tuple_match" if tuple(pl) == ltuple
+                               else "lean_tuple_diff"] += 1
+                    pred_check["lean_grade_match" if grade(pl, sopt) == lg
+                               else "lean_grade_diff"] += 1
+                if ip:
+                    piterm = min(next(c for c in ctab[(f, t)]
+                                      if c[2] == ts)[3]
+                                 for f, t, ts in ip["hops"])
+                    pi = (len(ip["hops"]), piterm, ip["hops"][0][1])
+                    pred_check["ion_term_in_threads" if piterm in terms
+                               else "ion_term_outside_threads"] += 1
+                    pg = grade(pi, sopt)
+                    if len(possible) == 1:
+                        pred_check["ion_grade_match" if pg == ig
+                                   else "ion_grade_diff"] += 1
+                    else:
+                        pred_check["ion_ambiguous_resolved"] += 1
+                        grades["ion_resolved_" + pg] += 1
+
+            if dump:
+                dump.write(json.dumps({
+                    "plan": pid, "src": q["src"], "dst": q["dst"], "t0": t0,
+                    "arrival": a, "sopt": list(sopt),
+                    "filter_c_changed": sopt != sopt_u,
+                    "lean": {"tuple": list(ltuple), "grade": lg},
+                    "ion": {"hops": len(ih), "entry": ih[0][1],
+                            "terms": terms, "grade": ig,
+                            "possible_grades": possible,
+                            "mirror_term": (pi[1] if pi else None)},
+                }) + "\n")
+                dump.flush()
+
+    if dump:
+        dump.close()
+
+    # Grade bounds across thread resolutions: key-2 status is
+    # thread-invariant (hops decide it before terms are consulted), so
+    # only conformant/key3/key4 can swing. Lower bound = determinate
+    # count; upper bound adds every swing dispatch that admits the grade.
+    bounds = {}
+    for g in ("conformant", "key3_dev", "key4_dev"):
+        det = grades.get("ion_" + g, 0)
+        bounds[g] = [det, det + bound_extra.get(g, 0)]
+
+    lean_key3 = grades.get("lean_key3_dev", 0)
+    lean_conf = grades.get("lean_conformant", 0)
+    claim_checks = {
+        "ion_key2_exact": grades.get("ion_key2_excess", 0),
+        "lean_key2_exact": grades.get("lean_key2_excess", 0),
+        "complementary_profile_at_worst":
+            bounds["key3_dev"][1] < lean_key3
+            and grades.get("lean_key2_excess", 0)
+            < grades.get("ion_key2_excess", 0),
+        "ion_more_conformant_at_worst":
+            bounds["conformant"][0] > lean_conf,
+    }
+
     report = {
         "epistemics": {
-            "lean": "authority (what the verified implementation did)",
-            "ion": "authority (what deployed ION did)",
+            "lean": "authority (what the recording binary did - 66948c9"
+                    " two-key pickMin; provenance and mirror: predict.py)",
+            "ion": "authority (what deployed ION 4.1.4 did)",
             "key1_truth": "state-space oracle, two-sided, unbounded class",
             "grading_truth": "exhaustive reuse-allowed enumeration,"
-                             " self-bounded by the graded question",
+                             " self-bounded by the graded question, on the"
+                             " 3.2.6.9 c) filtered universe (no contact"
+                             " back to the forwarding node)",
             "triangulation": "ION anchors the arrival function, not the"
                              " route domain; the oracles test the domain",
-            "spec_quantifier": "strong reading graded (all valid routes);"
-                               " the text's list-relative reading is the"
-                               " conformance escape hatch",
+            "spec_quantifier": "graded against 3.2.5.1 b) (list contains"
+                               " every deliverable route); 3.2.6.9.1"
+                               " licenses ceasing computation once one"
+                               " candidate exists, so the singleton-list"
+                               " reading is the text's own minimal"
+                               " behavior - the verdict swing between the"
+                               " two clauses is reported, not hidden",
         },
         "found_dispatches": found,
         "none_none": none_none,
         "owlt_range_entries": dict(sorted(owlt_hist.items())),
         "tie_among_minhop_optima": tie_count,
         "grades": dict(sorted(grades.items())),
-        "ion_thread_ambiguous": ambiguous,
+        "filter_c_changed_sopt": filter_c_changed,
+        "ion_thread_multiterm": multiterm,
+        "ion_grade_ambiguous": grade_ambiguous,
+        "ion_grade_bounds": bounds,
+        "claim_checks": claim_checks,
         "equal_hop_divergence_buckets": dict(sorted(eqhop_buckets.items())),
+        "equal_hop_excluded_grade_ambiguous": eqhop_excluded,
+        "prediction_crosscheck": dict(sorted(pred_check.items())),
         "lean_key4_delta8_cases": lean_k4,
         "lean_key2_offenders": lean_offenders_k2,
     }
