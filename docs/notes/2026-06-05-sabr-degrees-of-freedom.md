@@ -404,13 +404,19 @@ REGIME-INDEXED: cislunar-quantized and deep-space-real are different
 worlds, and the tiebreak layer only does work in the first.
 
 Registered for the ION leg (mirror-predicted, frozen before any ION
-run; the instrument still refuses the 556 margin-binding range entries
-until the margin frame is modeled): ION key-2 excess **0** (the
-stale-hopCount mechanism bites only at arrival ties), key-3 28,
-conformant 6056, and the 851 margin-moved arrivals above - the
-complementary profiles CONVERGE on real deep-space plans, so the
-differential engine's disagreement signal localizes to the
-cislunar-quantized regime plus the margin axis.
+run) and now graded in ION's declared margin frame (s5field.py
+ion-frame: oracles run on owlt + (125*owlt)//186282, so conformance
+and the margin value are no longer conflated): key-1 confirmed
+two-sided in frame on all 8912 dispatches; profile **6905 conformant /
+0 key-2 / 30 key-3 / 0 key-4** - 99.6% conformant in its own frame,
+key-2 excess zero because the stale-hopCount mechanism bites only at
+arrival ties. The margin-VALUE footprint stays as the labeled
+cross-frame fact: 851 of 6935 delivered arrivals differ from a
+margin-0 deployment's. The complementary profiles CONVERGE on real
+deep-space plans, so the differential engine's disagreement signal
+localizes to the cislunar-quantized regime plus the margin axis. Live
+ION validation of the frozen predictions remains queued (ion_node
+generalization to 14-47-node plans plus a serial multi-hour run).
 
 Where this moves the frontier: route selection is now settled on both
 distributions - mechanism-explained deviations in the regime that has

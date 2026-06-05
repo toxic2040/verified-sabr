@@ -247,6 +247,88 @@ def cmd_analyze(args):
                      indent=1))
 
 
+def cmd_ionframe(args):
+    """Grade the frozen ION-mirror predictions in ION's declared margin
+    frame. 3.2.6.5 makes the OWLT margin normative arithmetic with an
+    operator value; ION's value is (125*owlt)//186282 s per contact.
+    Grading ION against margin-free optima compares different arrival
+    functions, so here the oracles run on margin-inflated owlts: the
+    key-1 oracle confirms the mirror's arrival two-sided IN FRAME, and
+    the spec optimum is computed over the margined universe. The
+    margin-VALUE footprint (dispatches where ION-frame delivered
+    arrival differs from the margin-0 optimum) is reported separately,
+    cross-frame and labeled. Lean's frame is margin-0 throughout; the
+    two profiles are not pooled."""
+    corpus = Path(args.corpus)
+    lean_res = {}
+    for line in open(args.results):
+        rec = json.loads(line)
+        if "error" in rec:
+            continue
+        for q in rec["results"]:
+            lean_res[(rec["plan_id"], q["src"], q["dst"], q["t0"])] = \
+                q["lean"]
+
+    margin = Counter()
+    grades = Counter()
+    k1 = Counter()
+    plan_cache = {}
+    for line in open(args.predictions):
+        rec = json.loads(line)
+        if "error" in rec:
+            continue
+        pid = rec["plan_id"]
+        if pid not in plan_cache:
+            cs = parse_ionrc(corpus / pid / "contact_plan.ionrc")
+            adj_m = defaultdict(list)
+            for f, t, s, e, o in cs:
+                om = o + (125 * o) // 186282	# ion.h margin, integer
+                adj_m[f].append((f, t, s, e, om))
+            nm = json.load(open(corpus / pid
+                                / "plan_manifest.json"))["node_map"]
+            plan_cache[pid] = (adj_m, nm)
+        adj_m, nm = plan_cache[pid]
+        for q in rec["queries"]:
+            ip = q["ion_pred"]
+            src, dst, t0 = nm[q["src"]], nm[q["dst"]], q["t0"]
+            a_m = key1_oracle(adj_m, src, dst, t0)
+            if ip is None:
+                k1["none_confirmed" if a_m is None
+                   else "NONE_REFUTED"] += 1
+                continue
+            if a_m != ip["arrival"]:
+                k1["ARRIVAL_REFUTED"] += 1
+                continue
+            k1["arrival_confirmed"] += 1
+            depth = len(ip["hops"])
+            tuples = grading_oracle(adj_m, src, dst, t0, a_m, depth)
+            sopt = spec_optimum(tuples)
+            term = None
+            for f, t, ts in ip["hops"]:
+                for c in adj_m[f]:
+                    if c[1] == t and c[2] == ts:
+                        term = c[3] if term is None or c[3] < term \
+                            else term
+                        break
+            ituple = (len(ip["hops"]), term, ip["hops"][0][1])
+            grades["ion_" + grade(ituple, sopt)] += 1
+            # cross-frame, labeled: the margin VALUE's footprint
+            lean = lean_res.get((pid, q["src"], q["dst"], t0))
+            if lean and ip["arrival"] != lean["arrival"]:
+                margin["arrival_moved_vs_margin0"] += 1
+
+    report = {
+        "frame": "ION margin frame (owlt + (125*owlt)//186282);"
+                 " oracles margined identically; lean is margin-0 and"
+                 " NOT comparable row-for-row",
+        "key1_in_frame": dict(sorted(k1.items())),
+        "ion_frame_grades": dict(sorted(grades.items())),
+        "cross_frame_margin_value_footprint": dict(margin),
+    }
+    Path(args.out).write_text(json.dumps(report, indent=1))
+    print(json.dumps(report, indent=1))
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -261,6 +343,12 @@ def main():
     a.add_argument("--out", default="out_s5/s5_report.json")
     a.add_argument("--predictions", default=None)
     a.set_defaults(fn=cmd_analyze)
+    i = sub.add_parser("ion-frame")
+    i.add_argument("--corpus", required=True)
+    i.add_argument("--results", default="out_s5/s5_results.jsonl")
+    i.add_argument("--predictions", default="out_s5/predictions.jsonl")
+    i.add_argument("--out", default="out_s5/ion_frame_report.json")
+    i.set_defaults(fn=cmd_ionframe)
     args = ap.parse_args()
     args.fn(args)
 

@@ -286,12 +286,15 @@ stale hop counts at arrival ties; its key-3 strength and single key-4
 deviation are emergent, since its single-route construction never
 consults either key (§A.1).
 
-On dsn_real_v1 the current reference is conformant on 6935/6935 and
-ION's registered profile (mirror-predicted, frozen, awaiting the
-ION-side run) is key-2 excess 0, key-3 28, conformant 6056: the
-complementary profiles of the quantized regime converge on real
-deep-space plans. On the helio bands the reference is conformant on
-all 5016.
+On dsn_real_v1 the current reference is conformant on 6935/6935.
+ION's registered profile (mirror-predicted, frozen, awaiting live
+validation), graded in ION's declared margin frame with the oracles
+margined identically: key-1 confirmed two-sided in frame on all 8912
+dispatches; 6905 conformant, key-2 excess 0, key-3 30, key-4 0 -
+99.6% conformant in its own frame. The complementary profiles of the
+quantized regime converge on real deep-space plans; what remains on
+the margin axis is the value footprint of §4.2, kept cross-frame and
+labeled. On the helio bands the reference is conformant on all 5016.
 
 The table also functions as a version-regression probe: each
 comparator change is a one-minute field re-run, and the stability of
