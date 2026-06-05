@@ -661,7 +661,9 @@ a range   +START +END FROM TO OWLT
   quantize to 0; owlt = 0 is within the model (§3.1 recursion with range 0) and
   within the standard (§2.3.1 places no positivity constraint) — note the T3a
   hypothesis (§7) singles out *positive* OWLT precisely because zero permits
-  arrival ties.
+  arrival ties. Because the parser represents `OWLT` as `Nat`, `buildPlan`
+  proves `PlanNonnegOwlt` for every ingested ION-subset plan
+  (`buildPlan_nonnegOwlt`).
 - Contact and range lines are paired by exact `(FROM, TO, START)` match (the
   generator emits them 1:1). A contact line with no matching range line gets
   owlt 0; malformed lines are skipped. Both behaviors are deliberate: the
@@ -710,15 +712,17 @@ fix), oracle defect (cite), or tie-break divergence under 3.
 
 ## 10. T2: selection correctness and optimality
 
-Status at 2026-06-04 (T2 plan, task 4): T2a is proved and kernel-checked
+Status at 2026-06-05 (T2 plan, task 4): T2a is proved and kernel-checked
 (`pickMin_min`, `le4_total`, `le4_trans`, plus `le4_refl` and
 `pickMin_eq_none`; axioms = the standard three). On the T2b line, the
 arrival-monotonicity cornerstone (`arrivalTime_mono`), the splicing
 machinery, and the loop-erasure reduction (`loop_erasure`) are proved and
-kernel-checked; the history-divergence discharge and fuel sufficiency
-remain staged. Wording follows the §7 pattern: candidate statements are
-labeled as such, and nothing below claims a proof that does not exist in
-the tree.
+kernel-checked. The plan-level nonnegative-OWLT invariant is named
+`PlanNonnegOwlt`, has an executable checker `checkPlanNonnegOwlt`, and
+feeds the wrapper lemma `loop_erasure_of_plan_nonneg`; the
+history-divergence discharge and fuel sufficiency remain staged. Wording
+follows the §7 pattern: candidate statements are labeled as such, and
+nothing below claims a proof that does not exist in the tree.
 
 ### 10.1 The model's 4-key comparison (Delta 8 noted)
 
@@ -780,15 +784,20 @@ with owlt `-10`, `y : A→B` on `[-1000, -15]` with owlt `0`, `t₀ = 0`. Then
 `-10` — after `y`'s window closed — and further `x` passes drive arrival
 arbitrarily low. The hypothesis enters the erasure lemma as `0 ≤ c.owlt`
 over the route's hops; at the T2b level it is discharged plan-wide, since
-`isValidRoute` draws every competitor's hops from the plan. It costs
-nothing physically and is checkable on ingested plans.
+`isValidRoute` draws every competitor's hops from the plan. In Lean this
+plan-level assumption is `PlanNonnegOwlt cp`, with executable checker
+`checkPlanNonnegOwlt`; `validRoute_hops_mem` bridges `isValidRoute`'s
+Boolean `contains` test to Prop-level membership, and
+`loop_erasure_of_plan_nonneg` discharges the per-hop hypothesis from the
+plan. It costs nothing physically and is checkable on ingested plans.
 
 The competitor class is *all* valid routes — including routes that reuse
 contacts (`isValidRoute` does not require hop distinctness) and routes the
 closed-list search never enumerates (§8.3). Two reductions stage the proof at
 this strength:
 
-- **Loop erasure (proved, kernel-checked: `loop_erasure`).** A valid route
+- **Loop erasure (proved, kernel-checked: `loop_erasure`;
+  plan-level form: `loop_erasure_of_plan_nonneg`).** A valid route
   whose hops carry nonnegative owlt admits a duplicate-free valid route,
   drawn from the same hops, arriving no later. Any duplicate yields the
   decomposition `hops = pre ++ x :: (mid ++ x :: post)`; splice to

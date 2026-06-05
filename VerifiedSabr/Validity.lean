@@ -10,12 +10,27 @@ theorem routeSearch_sound (cp : ContactPlan) (src dst : Node) (t₀ : Time)
     (hops : List Contact) (h : routeSearch cp src dst t₀ = some hops) :
     isValidRoute cp src dst t₀ hops = true := by
   unfold routeSearch at h
-  simp only at h
-  split at h
-  · split at h
-    · simp_all
-    · simp_all
-  · simp_all
+  cases hs : searchLoop cp src dst ((cp.length + 1) * (cp.length + 1) + 1)
+      [{ hops := [], arrival := t₀ }] [] with
+  | none => simp [hs] at h
+  | some hloop =>
+      by_cases hv : isValidRoute cp src dst t₀ hloop = true
+      · simp only [hs, hv, reduceIte, Option.some.injEq] at h
+        subst h
+        exact hv
+      · simp [hs, hv] at h
+
+/-- Any hop in a valid route is drawn from the route's contact plan. This is
+    the Prop-level bridge for `isValidRoute`'s executable `contains` check.
+    [algorithm.md §2, §10.3] -/
+theorem validRoute_hops_mem {cp : ContactPlan} {src dst : Node} {t₀ : Time}
+    {hops : List Contact} (hv : isValidRoute cp src dst t₀ hops = true) :
+    ∀ c ∈ hops, c ∈ cp := by
+  simp only [isValidRoute, Bool.and_eq_true] at hv
+  obtain ⟨⟨⟨⟨⟨_, _⟩, _⟩, _⟩, hmem⟩, _⟩ := hv
+  rw [List.all_eq_true] at hmem
+  intro c hc
+  exact (List.contains_iff_mem).1 (hmem c hc)
 
 /-- Appending one contact threads its window after the prefix's arrival.
     [algorithm.md §3] -/
@@ -468,6 +483,19 @@ theorem loop_erasure {cp : ContactPlan} {src dst : Node} {t₀ : Time}
       ∧ isValidRoute cp src dst t₀ hops' = true
       ∧ arrivalTime t₀ hops' = some a' ∧ a' ≤ a :=
   loop_erasure_bounded cp src dst t₀ hops.length hops a le_rfl hnn hv ha
+
+/-- Plan-level T2b loop-erasure reduction: if the contact plan has
+    nonnegative OWLT, every valid route over it can be loop-erased. This is
+    the form used by the global optimality statement. [algorithm.md §10.3] -/
+theorem loop_erasure_of_plan_nonneg {cp : ContactPlan} {src dst : Node}
+    {t₀ : Time} {hops : List Contact} {a : Time}
+    (hcp : PlanNonnegOwlt cp)
+    (hv : isValidRoute cp src dst t₀ hops = true)
+    (ha : arrivalTime t₀ hops = some a) :
+    ∃ hops' a', hops'.Nodup ∧ (∀ c ∈ hops', c ∈ hops)
+      ∧ isValidRoute cp src dst t₀ hops' = true
+      ∧ arrivalTime t₀ hops' = some a' ∧ a' ≤ a :=
+  loop_erasure (fun c hc => hcp c (validRoute_hops_mem hv c hc)) hv ha
 
 /-- Invariant carried by every search candidate: its (reversed) hops form a
     plan-drawn chain departing `src`, and its cached arrival time is the real

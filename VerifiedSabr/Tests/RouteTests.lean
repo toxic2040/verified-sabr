@@ -13,6 +13,8 @@ def cBC : Contact := { source := "B", dest := "C", tStart := 5, tEnd := 20, owlt
 def cXY : Contact := { source := "X", dest := "Y", tStart := 0, tEnd := 1,  owlt := 1 }
 def plan : ContactPlan := [cAB, cBC, cXY]
 
+#guard checkPlanNonnegOwlt plan == true
+
 -- arrival: tx on cAB = max(0,0)=0 ≤ 10, arrive B at 1;
 -- tx on cBC = max(1,5)=5 ≤ 20, arrive C at 7.
 #guard arrivalTime 0 [cAB, cBC] == some 7
@@ -33,6 +35,8 @@ def cAA : Contact := { source := "A", dest := "A", tStart := 0, tEnd := 100, owl
 -- plus an exit contact whose window closes before any single pass arrives.
 def cAAneg : Contact := { source := "A", dest := "A", tStart := -1000, tEnd := 100, owlt := -10 }
 def cABlate : Contact := { source := "A", dest := "B", tStart := -1000, tEnd := -15, owlt := 0 }
+
+#guard checkPlanNonnegOwlt [cAAneg, cABlate] == false
 
 -- loop erasure (§10.3): with nonneg owlt the splice arrives no later
 #guard arrivalTime 0 [cAA, cAA, cAB] == some 3

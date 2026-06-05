@@ -53,6 +53,22 @@ def buildPlan (lines : List RawLine) : ContactPlan :=
     { source := c.a, dest := c.b, tStart := (c.s : Time), tEnd := (c.e : Time),
       owlt := owlt, rate := (c.v : ℚ) }
 
+/-- ION-subset ingestion always produces nonnegative OWLT plans: parsed range
+    values are naturals, and a missing range defaults to zero. [algorithm.md §9.1,
+    §10.3] -/
+theorem buildPlan_nonnegOwlt (lines : List RawLine) :
+    PlanNonnegOwlt (buildPlan lines) := by
+  unfold PlanNonnegOwlt buildPlan
+  intro c hc
+  rw [List.mem_map] at hc
+  obtain ⟨raw, _hraw, hcdef⟩ := hc
+  subst hcdef
+  simp only
+  split
+  · rename_i r hr
+    exact_mod_cast Nat.zero_le r.v
+  · simp
+
 /-- Render one hop as `FROM:TO:TSTART` (tStart is an integer rational on
     generator plans; the numerator is the integer). -/
 def renderHop (c : Contact) : String :=

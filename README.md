@@ -37,9 +37,9 @@ python3 scripts/diffharness/report.py --jsonl <out dir>/diff_results.jsonl \
     --out <out dir>/agreement_report.json
 ```
 
-Planned: optimality of the returned route (with the full 4-key tie-break)
-and loop-freedom characterization for multi-node forwarding. See
-`docs/specs/` for the design.
+Planned: optimality of the returned route on nonnegative-OWLT contact plans
+(with the full 4-key tie-break) and loop-freedom characterization for
+multi-node forwarding. See `docs/specs/` for the design.
 
 Build: `lake exe cache get && lake build`. The default build includes the
 test modules under `VerifiedSabr/Tests/`, whose `#guard` assertions are

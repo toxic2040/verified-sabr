@@ -81,9 +81,11 @@ Out (v1):
   well-formed: plan-drawn, adjacent, and window-feasible from the start time.
   First presentable result. Bundle-deadline filtering belongs to route
   selection and moves to v2 with the full tie-break order.
-- **T2 — optimality.** The returned route minimizes earliest arrival time over
-  all well-formed routes in the plan. Dijkstra-correctness on the contact
-  graph; the hard grind, but a well-trodden proof pattern.
+- **T2 — optimality.** On contact plans whose OWLT/range values are
+  nonnegative, the returned route minimizes earliest arrival time over all
+  well-formed routes in the plan. The nonnegative-OWLT hypothesis is physical
+  and load-bearing: without it, a negative-range contact is a time-machine
+  counterexample to the no-reuse search model.
 - **T3 — loop characterization.** Multi-node forwarding model: each node runs
   `routeSearch` over its own contact plan and forwards accordingly.
   - T3a: under identical and accurate plans at every node, no bundle revisits

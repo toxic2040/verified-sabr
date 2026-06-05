@@ -24,9 +24,30 @@ structure Contact where
   tEnd   : Time
   owlt   : Time
   rate   : ℚ := 0
-  deriving Repr, DecidableEq, BEq
+  deriving Repr, DecidableEq, BEq, ReflBEq, LawfulBEq
 
 /-- A contact plan is a finite list of contacts. [algorithm.md §1] -/
 abbrev ContactPlan := List Contact
+
+/-- Physical contact-plan invariant: every contact's range/OWLT is
+    nonnegative. `Contact.owlt` remains a rational field so invalid
+    counterexamples can state theorem boundaries directly. [algorithm.md §10.3] -/
+def PlanNonnegOwlt (cp : ContactPlan) : Prop :=
+  ∀ c ∈ cp, 0 ≤ c.owlt
+
+/-- Executable checker for `PlanNonnegOwlt`, used at import/test boundaries.
+    [algorithm.md §10.3] -/
+def checkPlanNonnegOwlt (cp : ContactPlan) : Bool :=
+  cp.all fun c => decide (0 ≤ c.owlt)
+
+theorem checkPlanNonnegOwlt_eq_true {cp : ContactPlan} :
+    checkPlanNonnegOwlt cp = true ↔ PlanNonnegOwlt cp := by
+  unfold checkPlanNonnegOwlt PlanNonnegOwlt
+  rw [List.all_eq_true]
+  constructor
+  · intro h c hc
+    exact of_decide_eq_true (h c hc)
+  · intro h c hc
+    exact decide_eq_true (h c hc)
 
 end VerifiedSabr
