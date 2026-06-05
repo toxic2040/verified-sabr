@@ -502,6 +502,63 @@ the reliability question collapses to "settled, modulo the four
 deferred parameters"; if the former, reliability genuinely lives in
 the volume layer and the residue analysis says exactly where to look.
 
+## The volume layer's answer: wash-out, with a witness
+
+Built and measured (`evl.py`): the full volume semantics - 3.2.6.3-7
+last-byte threading, 3.2.6.8 MTV/EVL/RVL with successor-clipped
+effective stops, 3.2.6.9 f)/g) filters in the no-fragmentation form,
+3.2.8.1.2 charges, 1.4 overhead, one priority level - replayed over a
+two-ledger experiment that isolates the residue: one spec-optimal
+selector, two ledgers charged along the two extreme conformant
+resolutions of every tuple-tie (canonical minimum and maximum of the
+tie class), identical traffic, watch for the first filter-verdict
+split. Backlog state cannot differ before first divergence, and the
+keys never read MTV, so any split is attributable to the residue
+alone. Charges persist for the horizon - conservative, since restoring
+them could only reduce amplification.
+
+In principle, amplification is a theorem. The selftest witness: two
+tuple-equal routes through a shared entry, one bundle charging
+divergently on the term-slack legs, then a second bundle SOURCED ON A
+LEG and sized into the charge gap - one conformant system routes it,
+the other reports no route. The standard permits two conformant
+implementations to differ on deliverability.
+
+In the field, it does not happen. corpus_v3, 144 dispatches per plan
+across 1000 plans: at contention 2.0 (traffic twice the tightest pass
+volume), 2 residue events, both washed out; at contention 8.0, 26
+plans carry residue (44 events at depth-4 enumeration) and every one
+washes out - the action streams stay identical end to end. The single
+depth-3 found/none candidate was a cap artifact (its none side had a
+live 4-hop fallback; found verdicts are monotone in enumeration depth,
+so that divergence type cannot reappear deeper). dsn_real_v1 carries
+zero residue events even at contention - no ties, nothing to store
+divergently, channel closed upstream.
+
+Why wash-out dominates, mechanically: divergent charges land on the
+term-slack interior legs of tuple-equal routes, so amplification needs
+a later bundle that (a) routes through one charged leg specifically,
+(b) is sized within the charge gap of a volume threshold, and (c) has
+no tuple-equivalent fallback. The multiplicity that creates residue
+also supplies the equivalent fallbacks that absorb it; the witness
+geometry - a leg-sourced bundle aimed into the gap - is exactly what
+endpoint traffic does not produce.
+
+Scope carried, not hidden: enumeration depth 4 on the adjudicated
+plans (truncations counted; entry-divergence via an asymmetrically
+filtered deeper-but-earlier route is not fully excluded above the
+cap), single priority, no fragmentation, staggered endpoint traffic
+(adversarial traffic aimed at the witness geometry amplifies by
+construction - that is what the selftest is).
+
+The verdict on the program's founding question: reliability at the
+routing layer is SETTLED - same actions, same deliverability, in both
+regimes, through the volume layer, under contention to eight times the
+bottleneck - modulo the standard's four deferred degrees of freedom,
+and with one permanently honest asterisk: the text PERMITS conformant
+implementations to diverge on deliverability (the witness), it just
+takes traffic shaped like the witness to realize it.
+
 ## Artifacts
 
 - `scripts/diffharness/predict.py` - both mirrors, predict/score phases,
