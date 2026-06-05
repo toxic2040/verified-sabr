@@ -536,23 +536,61 @@ standard's selected route is, by §3.2.6.10 + §3.2.4.1, a *loopless* shortest
 path whose per-vertex cost is `earliestArr`, and `earliestArr` is **strictly
 monotonic along any route** when every contact's range (OWLT) is positive
 (`earliestArr(cᵢ₊₁) = max(cᵢ₊₁.start, earliestArr(cᵢ)) + range(cᵢ₊₁) >
-earliestArr(cᵢ)` whenever `range > 0`). The candidate T3a claim:
+earliestArr(cᵢ)` whenever `range > 0`). Sharpened statement set (2026-06-05,
+T3a plan; the split is forced by the §8.3 identity finding and its field
+measurement — the implemented search is not key-2-global):
 
-> **Under identical, accurate contact plans at every node and strictly positive
-> OWLT on every contact, the sequence of earliest-arrival times along the actual
-> forwarding path is strictly increasing; hence the bundle visits each contact at
-> most once and therefore visits each node at most once between scheduled
-> contacts — no routing loop occurs.**
-
-The boundary the counterexample family (T3b) lives outside: drop "identical
-plans" (plan inconsistency between nodes lets node Y compute a route that sends
-the bundle back toward node X under a stale view) or drop "positive OWLT"
-(zero-range contacts permit equal arrival times and thus a tie the
-strict-monotonicity argument no longer rules out). T3a's contribution is the
-precise hypothesis boundary, and T3b reproduces the loop phenomenology the
-literature patches heuristically (the §3.2.8.1 NOTE's "history list" remark is
-the standard acknowledging this exact failure mode). This paragraph is a
-candidate statement to be sharpened during the proof, not a fixed theorem.
+- **T3a-term** (implemented router; hypothesis `PlanPosOwlt`: every
+  contact's OWLT strictly positive). The forwarding trajectory (§11)
+  delivers or halts within `⌊(Tmax − t₀)/δ⌋ + 1` steps, where `δ` is the
+  minimum OWLT and `Tmax` the latest contact end time. Router-independent:
+  every traversal advances local time by at least `δ`, and forwarding
+  requires an open window, so local time is bounded by `Tmax`. No infinite
+  forwarding loop can occur, whatever route each custodian picks.
+- **T3a-main** (abstract router). A router that is sound, complete, key-1
+  globally optimal, and key-2 globally optimal never revisits a node along
+  the forwarding trajectory; hence every contact is traversed at most once.
+  Proof shape: *squeeze* — the optimal arrival is non-increasing along the
+  trajectory (the selected route's suffix witnesses it from the next
+  custodian) and non-decreasing across a same-node revisit (later departure
+  cannot arrive earlier, §10.3 monotonicity), so a revisit forces it
+  constant; *descent* — at constant optimal arrival the optimal hop count
+  drops by at least one per step (the suffix of a hop-minimal route
+  witnesses one fewer); *contradiction* — the revisit-time route was
+  already feasible at the first visit with strictly fewer hops, against
+  key-2 minimality then.
+- **Instantiation — read this before citing T3a-main.** `routeSearch`
+  satisfies soundness (T1), completeness (§10.4), and key-1 global
+  optimality (T2b). The remaining antecedent, key-2 global optimality, is
+  not merely unproven for the visited-set search: it is **known false** —
+  refuted by the §8.3 witness and measured failing on 12.5% of dispatches
+  in the field (S1 instrumentation; ION side). T3a-main is a true theorem
+  about an abstract standard-faithful router; it is NOT a theorem about
+  the implementation running here or in ION, whose behavior lives outside
+  the hypothesis. Only T3a-term transfers unconditionally. A clean
+  three-step proof invites the over-read "node-unique, QED" — this
+  paragraph exists to block it.
+- **T3b and T3b-extended.** The classical T3b boundary stands: drop
+  "identical plans" (stale views route backward) or drop "positive OWLT"
+  (zero-range ties defeat strict monotonicity) and loops reappear.
+  T3b-extended asks whether visited-set pruning alone — identical plans,
+  strictly positive OWLT — can drive the *implemented* router to revisit
+  a node. The two outcomes are NOT symmetric: a loop construction
+  upgrades the §8.3 identity finding from route shape to forwarding
+  behavior (extra physical transits), while an impossibility proof would
+  be a genuinely harder theorem about the reachable behavior of a
+  non-minimal search — the squeeze–descent argument dies exactly where
+  key-2 minimality fails, so it is not T3a-main with a relaxed
+  hypothesis. The construction attempt runs first; formal investment
+  follows its outcome. Normative status, checked against the source: the
+  §3.2.8.1 history-list remark is a NOTE — advisory, not mandated — whose
+  stated aim is "minimizing the incidence of routing loops" (incidence,
+  not elimination), and which explicitly requires that a bundle returning
+  to an earlier forwarding point "must not" be discarded when its TTL is
+  live. The standard anticipates revisits and forbids blunt suppression;
+  a loop constructed under identical plans and positive OWLT is therefore
+  a gap in the standard's own loop story, not an implementation
+  conformance defect.
 
 ---
 
@@ -892,6 +930,36 @@ route exists" (`routeSearch_none_iff`). With T1 (soundness), T2a
 procedure for earliest-arrival routing on nonneg-OWLT plans.
 
 ---
+
+## 11. Forwarding trajectory model (T3 line)
+
+The §3.2.8 forwarding loop, modeled over one shared contact plan (the
+"identical, accurate plans" hypothesis of §7 collapses every custodian's
+view to a single `cp`). A forwarding state is a custodian node and the
+bundle's local time at that custodian.
+
+One step, from state `(X, t)` toward destination `D`:
+
+1. If `X = D`: **delivered** — no routing happens (consistent with Delta 6:
+   `routeSearch` returns `none` for `src = dst`, so the at-destination
+   check must precede routing, mirroring the search loop's own
+   return-before-close ordering).
+2. Otherwise run `routeSearch cp X D t`. On `none`: **halted** — no route
+   from here at this time (with §10.4 this is a definitive "no valid route
+   exists", not a search artifact).
+3. On `some r`: traverse the first hop `c` of `r` (the §3.2.8.1.4 b
+   enqueue-to contact): custody passes to `c.dest` at the §3.2.4.1 arrival
+   `max(t, c.tStart) + c.owlt`. The new state is `(c.dest, that arrival)`.
+
+The trajectory is the fuel-indexed iteration of this step. Modeling
+notes: only the first hop of each computed route is consumed — each
+custodian re-plans, which is exactly what makes multi-hop forwarding a
+fixed point question rather than a single-search corollary; transmission
+duration is ignored (first-byte semantics, as in §3); custody hand-off is
+instantaneous at the arrival time. `PlanPosOwlt` (strictly positive OWLT,
+the §7 hypothesis) gets the same treatment as `PlanNonnegOwlt`: a Prop,
+an executable checker, and a bridge lemma into the nonneg invariant the
+T2 results consume.
 
 ## Baseline audit (internal)
 

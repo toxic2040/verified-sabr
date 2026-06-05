@@ -1,8 +1,12 @@
 # Finding: the visited set weakens the best-route order to explored routes
 
-Status: pinned 2026-06-05, witness machine-checked (SearchTests, `vPlan`).
+Status: pinned 2026-06-05, witness machine-checked (SearchTests, `vPlan`);
+extended same day by the field conformance audit (instrument.py v2) —
+see "Field audit" below, which generalizes this finding beyond key 2 and
+finds it in BOTH implementations with complementary profiles.
 Paper-staging note for the verified-sabr writeup; everything below is
-backed by a kernel-checked theorem or a compile-time guard in the tree.
+backed by a kernel-checked theorem, a compile-time guard, or the audit
+report in the tree.
 
 ## The observation as originally filed
 
@@ -94,6 +98,32 @@ needs keys 2–4 globally must either drop the visited set (and pay the
 candidates it retained. The paper should state the weakened contract as
 the price of the standard-silent optimization, with the witness above as
 the two-route example.
+
+## Field audit (instrument.py v2, corpus_v3, 2026-06-05)
+
+Independent oracles (a state-space earliest-arrival oracle for key 1,
+complete over the unbounded reuse class; an exhaustive reuse-allowed
+enumerator for keys 2–4, self-bounded by the graded question) graded
+both implementations against §3.2.8.1.4 read verbatim — the order is
+total through key 4, with the caveat that the text quantifies over an
+unpinned candidate list (the strong all-valid-routes reading is graded;
+the list-relative reading is the conformance escape hatch and is itself
+a finding about the standard).
+
+Results, 4093 dispatches (ION on 3876; 217 window-thread-ambiguous
+flagged): lean 2020 conformant / 0 key-2 excess / 2024 key-3 deviations
+/ 49 key-4 deviations (all 49 the predicted Delta-8 digit-length cases);
+ION 2526 conformant / 509 key-2 excess / 840 key-3 / 1 key-4. So the
+finding generalizes: keys 2–4 are explored-set-relative in BOTH
+implementations, with complementary profiles — the visited set holds
+key 2 perfectly and pays at key 3; ION's route-list does the reverse.
+Equal-hop tie divergences decompose as 1691 lean-deviates / 515
+ion-deviates / 128 both / 2 genuinely arbitrary. The key-1 oracle
+agreed with the recorded optimum on all 4093 dispatches: the arrival
+guarantee (T2b) is confirmed two-sided over the unbounded class, and
+everything above key 1 is where conformance lives. Mechanism hypotheses
+for the complementary profiles await an ION source read before being
+asserted.
 
 ## Boundary
 

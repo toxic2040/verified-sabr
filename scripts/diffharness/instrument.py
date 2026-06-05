@@ -1,32 +1,50 @@
 #!/usr/bin/env python3
-"""S1 corpus instrumentation over recorded differential results.
+"""S1 conformance instrumentation over recorded differential results.
 
-Reads diff_results.jsonl plus the corpus ionrc plans and measures, without
-any ION or sabrsearch runs:
+Epistemic roles, stated so the report cannot be over-read:
 
-  - owlt distribution (the delay-degeneracy profile of the corpus);
-  - per-dispatch tie classification: does another route reach the recorded
-    optimal arrival with no more hops than the returned one (multiplicity
-    among minimal-hop optima; same-multiset reorderings of the returned
-    route are not counted, a documented non-case on chain-constrained
-    plans);
-  - per-dispatch minimal hop count at the optimal arrival, by bounded
-    exhaustive enumeration (exact: enumeration depth equals the returned
-    route's hop count, and any strictly shorter optimum lies within it);
-  - identity excess for both sides: returned hops minus minimal hops at
-    the optimum. A positive excess is a 3.2.8.1.4 key-2 shortfall against
-    the full valid-route class (the visited-set identity finding of
-    docs/notes/2026-06-05-visited-list-finding.md, measured in the field).
+  - lean and ION are AUTHORITIES: records of what each implementation did.
+  - This module supplies the TRUTH CLAIMS, by two oracles whose assumptions
+    are a strict relaxation of lean's frame, so lean's theorems sit inside
+    their search space as falsifiable hypotheses rather than constraints
+    (the frame-relaxation principle):
 
-Validator: the enumerator independently recomputes the optimal arrival via
-the section 3.1 recursion (integer arithmetic, exact on this corpus) and
-aborts if it ever disagrees with the recorded lean arrival - the kernel-
-checked side anchors the python reimplementation on every dispatch.
+      1. key-1 oracle: time-dependent label-correcting earliest arrival
+         over (node, time) states. No route objects, no visited list, no
+         tie keys, reuse irrelevant by construction - a different
+         algorithm family from the candidate search. Complete over the
+         UNBOUNDED route class: monotone relaxation on a finite value
+         lattice terminates with no depth cap. Soundness needs only
+         owlt >= 0, checked directly on the parsed data. Two-sided: it
+         can refute the recorded optimal arrival and, when it agrees,
+         confirms it.
+      2. grading oracle: exhaustive chain enumeration WITH contact reuse
+         up to depth max(returned hop counts). Complete for every
+         question it grades, because hop-count questions self-bound:
+         spec-minimal hops, spec key-3 termination, spec key-4 entry all
+         live at depths <= the returned routes'.
+
+  Triangulation scope: ION's 4100/4100 arrival agreement externally
+  anchors the arrival FUNCTION (max-with-start plus range); it says
+  nothing about the arrival DOMAIN (which routes exist). The oracles
+  above are what test the domain.
+
+Spec basis for grading (CCSDS 734.3-B-1, 3.2.8.1.4 a, read verbatim):
+keys are total through key 4 (arrival up, hops up, termination down,
+entry node NUMBER up; "arbitrarily" in 4) names the rule, not
+implementation freedom). Below key 4 the standard is silent, and
+3.2.8.1.4 b) consumes the best route only through its entry node, so
+sub-key-4 divergence is forwarding-equivalent in the no-volume regime.
+Quantifier caveat carried in the report: the spec ranges over "the
+candidate routes in the list" and never pins the list's contents; this
+module grades the strong reading (all valid routes) and reports the weak
+reading as the conformance escape hatch.
 """
 
 import argparse
 import json
 import sys
+import heapq
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -49,44 +67,74 @@ def parse_ionrc(path):
     return out
 
 
-def enumerate_optima(contacts, src, dst, t0, arrival, max_hops):
-    """Exhaustively walk no-reuse chains from src up to max_hops deep,
-    pruning on partial arrival > arrival (sound: owlt >= 0 on this corpus).
+def key1_oracle(adj, src, dst, t0):
+    """Earliest arrival at dst over ALL chains (reuse included), by
+    time-dependent Dijkstra on (node, earliest-known-arrival) labels.
+    Sound for owlt >= 0 (checked by caller); complete with no depth cap."""
+    best = {src: t0}
+    heap = [(t0, src)]
+    while heap:
+        t, node = heapq.heappop(heap)
+        if t > best.get(node, None if node not in best else best[node]):
+            continue
+        if node == dst and node != src:
+            pass  # settled; continue draining for clarity (heap is tiny)
+        for c in adj[node]:
+            tx = t if t > c[2] else c[2]
+            if tx > c[3]:
+                continue
+            t2 = tx + c[4]
+            if c[1] not in best or t2 < best[c[1]]:
+                best[c[1]] = t2
+                heapq.heappush(heap, (t2, c[1]))
+    return best.get(dst)
 
-    Returns (best_arrival_found, hop-count histogram of routes arriving
-    exactly at `arrival`)."""
-    adj = defaultdict(list)
-    for c in contacts:
-        adj[c[0]].append(c)
-    best = [None]
-    hist = Counter()
 
-    def step(t, c):
-        tx = max(t, c[2])
-        if tx > c[3]:
-            return None
-        return tx + c[4]
+def grading_oracle(adj, src, dst, t0, a, depth):
+    """All chains (reuse allowed) up to `depth`, pruned at arrival > a.
+    Returns (h, minTermEnd, entryNode) tuples of routes arriving exactly
+    at a. Complete for hop/term/entry grading at depths <= `depth`."""
+    tuples = []
 
-    def dfs(node, t, depth, used):
-        if depth >= max_hops:
+    def dfs(node, t, d, term, entry):
+        if d >= depth:
             return
         for c in adj[node]:
-            if id(c) in used:
+            tx = t if t > c[2] else c[2]
+            if tx > c[3]:
                 continue
-            t2 = step(t, c)
-            if t2 is None or t2 > arrival:
+            t2 = tx + c[4]
+            if t2 > a:
                 continue
-            if c[1] == dst:
-                if best[0] is None or t2 < best[0]:
-                    best[0] = t2
-                if t2 == arrival:
-                    hist[depth + 1] += 1
-            used.add(id(c))
-            dfs(c[1], t2, depth + 1, used)
-            used.discard(id(c))
+            nterm = c[3] if term is None or c[3] < term else term
+            nentry = entry if entry is not None else c[1]
+            if c[1] == dst and t2 == a:
+                tuples.append((d + 1, nterm, nentry))
+            dfs(c[1], t2, d + 1, nterm, nentry)
 
-    dfs(src, t0, 0, set())
-    return best[0], hist
+    dfs(src, t0, 0, None, None)
+    return tuples
+
+
+def spec_optimum(tuples):
+    """3.2.8.1.4 a) keys 2-4 at fixed optimal arrival: hops up, then
+    termination down, then entry node number up."""
+    hmin = min(t[0] for t in tuples)
+    at_h = [t for t in tuples if t[0] == hmin]
+    tmax = max(t[1] for t in at_h)
+    at_ht = [t for t in at_h if t[1] == tmax]
+    emin = min(t[2] for t in at_ht)
+    return (hmin, tmax, emin)
+
+
+def grade(tup, sopt):
+    if tup[0] > sopt[0]:
+        return "key2_excess"
+    if tup[1] != sopt[1]:
+        return "key3_dev"
+    if tup[2] != sopt[2]:
+        return "key4_dev"
+    return "conformant"
 
 
 def main():
@@ -99,74 +147,142 @@ def main():
 
     corpus = Path(args.corpus)
     owlt_hist = Counter()
-    plan_cache = {}
-    nodemap_cache = {}
+    plan_cache, nm_cache, adj_cache, ctab_cache = {}, {}, {}, {}
 
-    stats = Counter()
-    lean_excess_hist = Counter()
-    ion_excess_hist = Counter()
+    found = none_none = ambiguous = 0
+    grades = Counter()
+    eqhop_buckets = Counter()
     tie_count = 0
-    found = 0
-    offenders = []
+    lean_k4 = []
+    lean_offenders_k2 = []
 
     for line in open(args.results):
         rec = json.loads(line)
         pid = rec["plan_id"]
         if pid not in plan_cache:
             pdir = corpus / pid
-            plan_cache[pid] = parse_ionrc(pdir / "contact_plan.ionrc")
-            nodemap_cache[pid] = json.load(
-                open(pdir / "plan_manifest.json"))["node_map"]
-            for c in plan_cache[pid]:
+            cs = parse_ionrc(pdir / "contact_plan.ionrc")
+            for c in cs:
+                if c[4] < 0:
+                    print(f"NEGATIVE OWLT in {pid}: key-1 oracle unsound",
+                          file=sys.stderr)
+                    sys.exit(1)
                 owlt_hist[c[4]] += 1
-        contacts = plan_cache[pid]
-        nm = nodemap_cache[pid]
+            plan_cache[pid] = cs
+            nm_cache[pid] = json.load(
+                open(pdir / "plan_manifest.json"))["node_map"]
+            adj = defaultdict(list)
+            ctab = defaultdict(list)
+            for c in cs:
+                adj[c[0]].append(c)
+                ctab[(c[0], c[1])].append(c)
+            adj_cache[pid], ctab_cache[pid] = adj, ctab
+        adj, nm, ctab = adj_cache[pid], nm_cache[pid], ctab_cache[pid]
+
         for q in rec["results"]:
             lean, ion = q.get("lean"), q.get("ion")
             if not lean or not ion or lean.get("hops") is None \
                     or ion.get("hops") is None:
-                stats["none_none"] += 1
+                none_none += 1
                 continue
             found += 1
             a = lean["arrival"]
-            kL, kI = len(lean["hops"]), len(ion["hops"])
-            src, dst, t0 = nm[q["src"]], nm[q["dst"]], q["t0"]
-            best, hist = enumerate_optima(contacts, src, dst, t0, a,
-                                          max(kL, kI))
-            if best != a:
-                print(f"VALIDATOR FAILURE {pid} {q['src']}->{q['dst']} "
-                      f"t0={t0}: enumerator best {best} != recorded {a}",
+            t0 = q["t0"]
+            lh, ih = lean["hops"], ion["hops"]
+            src, dst = nm[q["src"]], nm[q["dst"]]
+
+            # key-1 truth: two-sided check of the recorded optimum
+            k1 = key1_oracle(adj, src, dst, t0)
+            if k1 != a:
+                print(f"KEY-1 ORACLE DISAGREES {pid} {q['src']}->{q['dst']} "
+                      f"t0={t0}: oracle {k1} vs recorded {a} - punt-to-truth "
+                      f"event, investigate before trusting either",
                       file=sys.stderr)
                 sys.exit(1)
-            min_hops = min(hist) if hist else None
-            if min_hops is None:
-                print(f"VALIDATOR FAILURE {pid}: no route at optimum",
-                      file=sys.stderr)
+
+            tuples = grading_oracle(adj, src, dst, t0, a, max(len(lh), len(ih)))
+            if not tuples:
+                print(f"GRADING ORACLE EMPTY {pid}", file=sys.stderr)
                 sys.exit(1)
-            le, ie = kL - min_hops, kI - min_hops
-            lean_excess_hist[le] += 1
-            ion_excess_hist[ie] += 1
-            if le > 0:
-                offenders.append({"plan": pid, "src": q["src"],
-                                  "dst": q["dst"], "t0": t0, "side": "lean",
-                                  "hops": kL, "min": min_hops})
-            # tie among minimal-hop optima: another route at the optimal
-            # arrival with <= kL hops (the returned route is one of them)
-            if sum(n for h, n in hist.items() if h <= kL) >= 2:
+            sopt = spec_optimum(tuples)
+
+            # lean tuple: (from, to, tStart) triples identify contacts
+            lterm = min(next(c for c in ctab[(f, t)] if c[2] == ts)[3]
+                        for f, t, ts in lh)
+            ltuple = (len(lh), lterm, lh[0][1])
+            lg = grade(ltuple, sopt)
+            grades["lean_" + lg] += 1
+            if lg == "key2_excess":
+                lean_offenders_k2.append({"plan": pid, "src": q["src"],
+                                          "dst": q["dst"], "t0": t0})
+            if ltuple[0] == sopt[0] and ltuple[1] == sopt[1] \
+                    and ltuple[2] != sopt[2]:
+                lean_k4.append({"plan": pid, "src": q["src"], "dst": q["dst"],
+                                "lean_entry": ltuple[2],
+                                "spec_entry": sopt[2]})
+
+            # ion tuple: (from, to) pairs thread over candidate windows;
+            # ambiguity flagged, never guessed
+            threads = [(t0, None)]
+            for f, t in ih:
+                nxt = []
+                for tcur, term in threads:
+                    for c in ctab[(f, t)]:
+                        tx = tcur if tcur > c[2] else c[2]
+                        if tx > c[3]:
+                            continue
+                        nterm = c[3] if term is None or c[3] < term else term
+                        nxt.append((tx + c[4], nterm))
+                threads = nxt
+            terms = sorted(set(term for tarr, term in threads if tarr == a))
+            if not terms:
+                print(f"ION THREAD INCONSISTENT {pid}", file=sys.stderr)
+                sys.exit(1)
+            if len(terms) > 1:
+                ambiguous += 1
+                grades["ion_ambiguous"] += 1
+            else:
+                ituple = (len(ih), terms[0], ih[0][1])
+                ig = grade(ituple, sopt)
+                grades["ion_" + ig] += 1
+                if not q["agree_hops"] and len(lh) == len(ih):
+                    eqhop_buckets[("lean_dev" if ltuple != sopt else "lean_ok")
+                                  + "/" +
+                                  ("ion_dev" if ituple != sopt else "ion_ok")
+                                  ] += 1
+
+            if sum(n for n, _, _ in [(t[0], 0, 0) for t in tuples]
+                   if n <= len(lh)) >= 2:
                 tie_count += 1
 
     report = {
+        "epistemics": {
+            "lean": "authority (what the verified implementation did)",
+            "ion": "authority (what deployed ION did)",
+            "key1_truth": "state-space oracle, two-sided, unbounded class",
+            "grading_truth": "exhaustive reuse-allowed enumeration,"
+                             " self-bounded by the graded question",
+            "triangulation": "ION anchors the arrival function, not the"
+                             " route domain; the oracles test the domain",
+            "spec_quantifier": "strong reading graded (all valid routes);"
+                               " the text's list-relative reading is the"
+                               " conformance escape hatch",
+        },
         "found_dispatches": found,
-        "none_none": stats["none_none"],
+        "none_none": none_none,
         "owlt_range_entries": dict(sorted(owlt_hist.items())),
         "tie_among_minhop_optima": tie_count,
-        "tie_rate": round(tie_count / found, 4) if found else None,
-        "lean_hop_excess_hist": dict(sorted(lean_excess_hist.items())),
-        "ion_hop_excess_hist": dict(sorted(ion_excess_hist.items())),
-        "lean_excess_offenders": offenders,
+        "grades": dict(sorted(grades.items())),
+        "ion_thread_ambiguous": ambiguous,
+        "equal_hop_divergence_buckets": dict(sorted(eqhop_buckets.items())),
+        "lean_key4_delta8_cases": lean_k4,
+        "lean_key2_offenders": lean_offenders_k2,
     }
     Path(args.out).write_text(json.dumps(report, indent=1))
-    print(json.dumps(report, indent=1)[:1200])
+    print(json.dumps({k: v for k, v in report.items()
+                      if k not in ("lean_key4_delta8_cases",
+                                   "lean_key2_offenders")}, indent=1))
+    print(f"lean_key4_delta8_cases: {len(lean_k4)}")
 
 
 if __name__ == "__main__":
