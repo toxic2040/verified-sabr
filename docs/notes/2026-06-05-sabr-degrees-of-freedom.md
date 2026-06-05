@@ -544,12 +544,16 @@ also supplies the equivalent fallbacks that absorb it; the witness
 geometry - a leg-sourced bundle aimed into the gap - is exactly what
 endpoint traffic does not produce.
 
-Scope carried, not hidden: enumeration depth 4 on the adjudicated
-plans (truncations counted; entry-divergence via an asymmetrically
-filtered deeper-but-earlier route is not fully excluded above the
-cap), single priority, no fragmentation, staggered endpoint traffic
-(adversarial traffic aimed at the witness geometry amplifies by
-construction - that is what the selftest is).
+Scope carried, not hidden: single priority, no fragmentation,
+staggered endpoint traffic (adversarial traffic aimed at the witness
+geometry amplifies by construction - that is what the selftest is).
+Both enumeration-cap exposures are closed structurally rather than by
+sampling: found/none by depth-monotonicity of found verdicts, and
+entry divergence by the depth-free key-1 oracle - on uniform-rate
+plans a selection already at the volume-unconstrained optimal PBAT
+cannot be beaten at key 1 by any deeper route, and deeper routes lose
+key 2 at equal PBAT; measured across all 26 adjudicated plans, zero
+dispatches sit above that optimum (`pbat_gap_dispatches`).
 
 The verdict on the program's founding question: reliability at the
 routing layer is SETTLED - same actions, same deliverability, in both

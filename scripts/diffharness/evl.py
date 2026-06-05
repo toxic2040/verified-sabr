@@ -63,7 +63,7 @@ from os import cpu_count
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from instrument import parse_ionrc  # noqa: E402
+from instrument import parse_ionrc, key1_oracle  # noqa: E402
 
 def evc(size):
     """1.4: estimated convergence-layer overhead on top of the bundle."""
@@ -198,12 +198,26 @@ def replay_plan(pdir, n_bundles, contention, depth_cap):
     size = max(1, int(contention * tight / total_bundles))
     evc_b = evc(size)
 
+    # depth-cap closure check (uniform-rate plans): the key-1 oracle is
+    # depth-free, so the volume-unconstrained optimal PBAT is its value
+    # plus the constant radiation latency. A ledger whose SELECTED pbat
+    # equals that optimum cannot be beaten at key 1 by any deeper route,
+    # and deeper routes lose key 2 at equal pbat - so entry divergence
+    # from beyond the cap is impossible at that dispatch. Dispatches
+    # where a selection sits ABOVE the unconstrained optimum are the
+    # only ones the cap leaves open; they are counted here.
+    uniform_rate = len({c[5] for c in contacts}) == 1
+    adj = defaultdict(list)
+    for c in contacts:
+        adj[c[0]].append(c[:5])
+
     mtv_a = [c[5] * (c[3] - c[2]) for c in contacts]
     mtv_b = list(mtv_a)
     residue_events = 0
     first_div = None
     actions = {"same": 0, "entry_diverged": 0, "found_none": 0}
     truncations = 0
+    pbat_gap = 0
     for n, (t0, src, dst) in enumerate(dispatches):
         s, d = nm[src], nm[dst]
         bt_a, pa_min, pa_max, tr_a = select(contacts, by_from, s, d,
@@ -230,6 +244,12 @@ def replay_plan(pdir, n_bundles, contention, depth_cap):
                              "entry_a": bt_a[3], "entry_b": bt_b[3]}
         else:
             actions["same"] += 1
+            if uniform_rate and (tr_a or tr_b):
+                a_star = key1_oracle(adj, s, d, t0)
+                if a_star is not None:
+                    opt = a_star + evc_b / contacts[0][5]
+                    if bt_a[0] > opt or bt_b[0] > opt:
+                        pbat_gap += 1
         # each ledger stores and charges its own conformant resolution:
         # A the canonical minimum of its tie class, B the maximum
         if bt_a is not None:
@@ -244,7 +264,8 @@ def replay_plan(pdir, n_bundles, contention, depth_cap):
     return {"plan_id": pdir.name, "dispatches": len(dispatches),
             "bundle_size": size, "residue_events": residue_events,
             "actions": actions, "first_divergence": first_div,
-            "truncated_enumerations": truncations}
+            "truncated_enumerations": truncations,
+            "pbat_gap_dispatches": pbat_gap}
 
 
 def cmd_run(args):
