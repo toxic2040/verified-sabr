@@ -561,8 +561,9 @@ per §3.2.6.3-7, successor-clipped effective stops and MTV/EVL/RVL per
 §3.2.6.8, the no-fragmentation filters per §3.2.6.9 f)/g), §1.4
 overhead. Under those conditions, on corpus_v3 at contention 2.0:
 2 residue events, both washed out. At contention 8.0: 26 plans carry
-44 residue events under depth-4 adjudication, and every action stream
-is identical end to end. On dsn_real_v1: zero residue events at all -
+32 residue events at the depth-3 cap, all washed out but one found/none
+cap artifact that resolves at depth 4 by found-verdict monotonicity
+(below), leaving every action stream identical end to end. On dsn_real_v1: zero residue events at all -
 no ties, nothing to store divergently, the channel closed upstream by
 the regime. The divergence the standard permits did not occur on
 endpoint-sourced traffic under stress exceeding any realistic
@@ -572,9 +573,9 @@ supplies tuple-equivalent fallbacks to absorb it, and endpoint
 traffic does not produce the witness geometry (a leg-sourced bundle
 aimed into a charge gap).
 
-**Both enumeration-cap exposures are closed by argument.** The replay
+**Both enumeration-cap exposures are closed.** The replay
 enumerates candidates to a depth cap, truncations counted, which
-exposes two artifact channels; both are closed structurally. A
+exposes two artifact channels; each is closed below. A
 found/none divergence whose "none" side truncated could be a cap
 artifact - the single depth-3 candidate was exactly that, its none
 side holding a live four-hop fallback - and found-verdicts are
@@ -586,9 +587,12 @@ only); but the key-1 oracle is depth-free, so on a uniform-rate plan
 the volume-unconstrained optimal PBAT is computable without any cap,
 and a dispatch whose selections already sit at that optimum cannot be
 beaten at key 1 by any deeper route, while deeper routes lose key 2
-at equal PBAT. Measured across all 26 adjudicated plans: zero
-dispatches sit above the unconstrained optimum. Entry divergence from
-beyond the cap is impossible on this data, not merely unobserved.
+at equal PBAT. That bound is exact only on uniform-rate plans, and corpus_v3 is
+mixed-rate, so its `pbat_gap` witness is inert and the structural
+impossibility does not transfer; here the endpoint shows no entry
+divergence at the depth-3 cap, and the depth-4 re-adjudication below -
+which dissolves 4 of 40 relay splits as cap artifacts - confirms the
+cap is not masking divergence empirically.
 This is the same cap-killing move used throughout the program (§2.5).
 
 **The absorption is source-relative, and relay-sourced traffic
@@ -706,7 +710,7 @@ they surfaced.
 What survived that process is the claim of this paper. The program
 set out to find reliability risk in implementations, built
 instruments designed to surface it, and those instruments instead
-localized all variation to four places in the standard's text - a
+localized all variation to five places in the standard's text - a
 conclusion we repeatedly tried and failed to break. The trying was
 aimed where the instruments could reach: key-1 refutation, binary
 provenance, the OWLT axis, the volume ledger, traffic shape. Channels
@@ -715,9 +719,11 @@ priorities, fragmentation, arithmetic tolerance - were scoped out, not
 survived, and §8 marks that boundary explicitly. For CCSDS
 734.3-B-1 the surviving characterization is: a selection order that
 is total and precise; action-deterministic at every tie it cannot
-break; settled through the volume layer on physical traffic under
-stress beyond realistic deployment, with the one permitted divergence
-channel exhibited by construction and shown inert by mechanism; and
+break; settled through the volume layer under endpoint-sourced traffic at
+stress beyond realistic deployment, where the fifth divergence channel
+- the route object stored at full-tuple ties - is inert there by an
+absorption mechanism but fires under relay-sourced traffic at measured
+rates (36 to 82 of 1000 plans, depth-4-adjudicated); and
 ranging over a candidate list, a margin value, a route class, and a
 graph that the text leaves to its implementers, its operators, and in
 one case to a false declaration. The fix costs are small and named.

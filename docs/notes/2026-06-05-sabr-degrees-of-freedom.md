@@ -538,8 +538,9 @@ implementations to differ on deliverability.
 In the field, it does not happen. corpus_v3, 144 dispatches per plan
 across 1000 plans: at contention 2.0 (traffic twice the tightest pass
 volume), 2 residue events, both washed out; at contention 8.0, 26
-plans carry residue (44 events at depth-4 enumeration) and every one
-washes out - the action streams stay identical end to end. The single
+plans carry residue (32 events at the depth-3 cap); all wash out but a
+single found/none cap artifact, and once that resolves at depth 4 the
+action streams stay identical end to end. The single
 depth-3 found/none candidate was a cap artifact (its none side had a
 live 4-hop fallback; found verdicts are monotone in enumeration depth,
 so that divergence type cannot reappear deeper). dsn_real_v1 carries
@@ -570,9 +571,11 @@ conformant ledgers enqueue the same bundle to different neighbors -
 and the diverging dispatches source across the whole node set: once
 leg-sourced charges open a gap, any later dispatch can land in it.
 Depth-4 adjudication of the diverged plans (evl_adjudicate.py,
-results alongside) confirms cap-robustness: 82 of 82 persist at
-contention 8.0, 36 of 40 at 2.0 (4 dissolve under the deeper cap);
-`pbat_gap_dispatches` is 0 across both legs. The volume channel is not permitted-but-inert; it
+results alongside) confirms cap-robustness empirically: 82 of 82 persist at
+contention 8.0, 36 of 40 at 2.0 (4 dissolve under the deeper cap). The
+`pbat_gap` structural witness is uniform-rate-gated and so inert on
+this mixed-rate corpus, so the depth-4 re-replay - not that witness -
+carries the result here. The volume channel is not permitted-but-inert; it
 is permitted with traffic-shape-indexed firing - inert under
 endpoint-sourced traffic by the absorption mechanism, live under
 relay-sourced traffic at measured rates. Artifacts in
@@ -583,13 +586,14 @@ staggered traffic (endpoint legs measure the absorption regime; relay
 legs the firing regime; adversarial traffic aimed at a chosen victim
 dispatch remains a third, unmeasured shape - that is what the
 selftest's sizing is).
-Both enumeration-cap exposures are closed structurally rather than by
-sampling: found/none by depth-monotonicity of found verdicts, and
-entry divergence by the depth-free key-1 oracle - on uniform-rate
-plans a selection already at the volume-unconstrained optimal PBAT
+The found/none cap exposure is closed structurally, by
+depth-monotonicity of found verdicts. The entry-divergence exposure
+closes structurally only on uniform-rate plans (the depth-free key-1
+oracle: a selection already at the volume-unconstrained optimal PBAT
 cannot be beaten at key 1 by any deeper route, and deeper routes lose
-key 2 at equal PBAT; measured across all 26 adjudicated plans, zero
-dispatches sit above that optimum (`pbat_gap_dispatches`).
+key 2 at equal PBAT); corpus_v3 is mixed-rate, so its `pbat_gap`
+witness is inert and the entry exposure closes empirically instead,
+by the depth-4 re-adjudication above.
 
 The verdict on the program's founding question: reliability at the
 routing layer is settled for endpoint-sourced traffic - same actions,
