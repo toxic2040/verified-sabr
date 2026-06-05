@@ -793,16 +793,21 @@ below claims a proof that does not exist in the tree.
    four keys resolves to the earlier frontier element, instantiating the
    standard's "arbitrarily."
 
-Node order (Delta 8): the standard compares node *numbers* (CBHE/ipn
-identifiers). The model's `Node` is `String`, and key 4 uses total
-lexicographic string order, which disagrees with numeric order on digit
-strings of unequal length ("10" < "9" lexicographically). Faithful-restriction
-reading: keys 1–3 are standard-exact; at a full keys-1–3 tie the standard
-itself calls the choice arbitrary only after key 4, so the model's winner can
-differ from ION's on plans where keys 1–3 tie and the two node orders
-disagree. The differential agreement criterion (§9.3) compares verdict +
-arrival, not hop identity, so this delta cannot produce a P6-style
-disagreement; it is recorded for any future hop-identity comparison.
+Node order (Delta 8, resolved 2026-06-05): the standard compares node
+*numbers* (CBHE/ipn identifiers). The model's `Node` stays `String`, and
+key 4 compares shorter-string-first, then lexicographically. On canonical
+decimal identifiers — no leading zeros, which is what ionrc ingestion
+produces — length-then-lex IS numeric order, so key 4 now matches the
+standard's "smallest entry node number"; on the lettered toy plans
+(equal-length names) it coincides with the previous string order. The
+earlier pure-lexicographic order disagreed with numeric on digit strings
+of unequal length ("10" < "9" lexicographically); its field footprint was
+measured before the fix at 106 of 4093 dispatches (all digit-length
+cases, entries {10,11,12} against spec {2,3,8} — the 4-key field run in
+out_diff_v3/le4_field_report.json) and the fix's effect is re-measured in
+the same harness. The differential agreement criterion (§9.3) compares
+verdict + arrival, not hop identity, so neither order can produce a
+P6-style disagreement.
 
 ### 10.2 T2a — selection correctness
 
@@ -1020,13 +1025,16 @@ Tutorial Fig. 3 plan, A→E, t₀ = 0, expected `[#5/6, #7/8, #11/12]`, arrival 
 **Action taken:** noted in the plan that the §6 example is the Tutorial A→E case
 with the exact assertions listed in §6.
 
-**Delta 8 — key-4 node order (T2 plan, 2026-06-04): DIVERGENCE, documented.**
+**Delta 8 — key-4 node order (T2 plan, 2026-06-04): RESOLVED 2026-06-05.**
 The standard's key 4 compares node *numbers*; the model's `Node` is `String`
-and `Cand.le4` uses total lexicographic string order (§10.1). The orders
-disagree on digit strings of unequal length. Consequence is confined to the
-choice among routes tied on keys 1–3 — a choice the standard finalizes only at
-key 4 — and cannot affect the §9.3 agreement criterion (verdict + arrival).
-Recorded for any future hop-identity-level differential comparison.
+and `Cand.le4` originally used total lexicographic string order, which
+disagrees with numeric order on digit strings of unequal length. While the
+differential compared only verdict + arrival this was agreement-neutral;
+the conformance audit grades hop identity, where it became a live key-4
+divergence with a measured footprint of 106/4093 dispatches under the 4-key
+binary. `entryLE` now orders shorter strings first, then lexicographically —
+numeric order on the canonical decimal identifiers ingestion produces,
+unchanged on the equal-length lettered toy plans (§10.1).
 
 **Net:** the time-only baseline is faithful to CCSDS 734.3-B-1 for the P0–P3
 (T1 soundness) scope. The standard-vs-model divergences are the tie-break

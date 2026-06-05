@@ -194,6 +194,15 @@ def main():
                     print(f"NEGATIVE OWLT in {pid}: key-1 oracle unsound",
                           file=sys.stderr)
                     sys.exit(1)
+                if c[4] >= 1491:
+                    # ION adds (MAX_SPEED_MPS*owlt)//186282 s of margin,
+                    # nonzero from owlt 1491 s (helio B3). The oracles do
+                    # not model it yet; grading that regime margin-blind
+                    # would silently compare different arrival functions.
+                    print(f"OWLT {c[4]} >= 1491 in {pid}: ION margin"
+                          " binds and is unmodeled - refusing to grade",
+                          file=sys.stderr)
+                    sys.exit(1)
                 owlt_hist[c[4]] += 1
             plan_cache[pid] = cs
             nm_cache[pid] = json.load(
@@ -237,6 +246,15 @@ def main():
                                                  depth, filter_c=False))
             if sopt != sopt_u:
                 filter_c_changed += 1
+
+            # 3.2.6.9 c) at route level: neither implementation may
+            # return a route containing a contact back to the forwarding
+            # node (loopback aside, never exercised here). Counted, not
+            # assumed - a future corpus could trip it silently.
+            if any(t == src for _, t, _ in lh):
+                grades["lean_filter_c_route"] += 1
+            if any(t == src for _, t in ih):
+                grades["ion_filter_c_route"] += 1
 
             # lean tuple: (from, to, tStart) triples identify contacts
             lterm = min(next(c for c in ctab[(f, t)] if c[2] == ts)[3]
@@ -394,6 +412,10 @@ def main():
         "none_none": none_none,
         "owlt_range_entries": dict(sorted(owlt_hist.items())),
         "tie_among_minhop_optima": tie_count,
+        "grades_reading": "strong (3.2.5.1 b complete list, 3.2.6.9"
+                          " filters); the 3.2.6.9.1 cessation reading"
+                          " zeroes the ION rows - see the"
+                          " degrees-of-freedom note",
         "grades": dict(sorted(grades.items())),
         "filter_c_changed_sopt": filter_c_changed,
         "ion_thread_multiterm": multiterm,

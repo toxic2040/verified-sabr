@@ -231,17 +231,108 @@ predictions frozen first, sha256 in the run log). Results:
   mechanism, not just a source property.
 - Conformant 2020 -> 3777 (92.3%); key-2 excess stays 0.
 
-The three measured points in implementation space, all graded against
+The string entry order was then replaced (same day) by
+shorter-string-first-then-lexicographic, which is numeric order on the
+canonical decimal identifiers ingestion produces - Delta 8 resolved at
+the source (algorithm.md §10.1). Field run of the rebuilt binary,
+mirror predictions frozen first and confirmed 4093/4093: key-4
+deviations 106 -> 1 (the survivor is closing-caused - the numerically
+best entry's route is never enumerated), key-3 exactly 210 with zero
+new, conformance 3882 (94.8%).
+
+The four measured points in implementation space, all graded against
 the same oracle truth on the same dispatches:
 
-| construction                      | conformant | key-2 | key-3 | key-4 |
-|-----------------------------------|-----------|-------|-------|-------|
-| recording binary (two-key+closing)| 2020      | 0     | 2024  | 49    |
-| current source (4-key str+closing)| 3777      | 0     | 210   | 106   |
-| ION 4.1.4 (singleton Yen)         | 2526      | 512   | 1054  | 1     |
+| construction                       | conformant | key-2 | key-3 | key-4 |
+|------------------------------------|-----------|-------|-------|-------|
+| recording binary (two-key+closing) | 2020      | 0     | 2024  | 49    |
+| 4-key, string entry (+closing)     | 3777      | 0     | 210   | 106   |
+| 4-key, numeric entry (+closing)    | 3882      | 0     | 210   | 1     |
+| ION 4.1.4 (singleton Yen)          | 2526      | 512   | 1054  | 1     |
 
 Each profile is a theorem of its construction; none is the standard,
-and the standard's text licenses the spread.
+and the standard's text licenses the spread. The comparator rows also
+serve as a version-regression probe: every comparator change gets a
+one-minute field re-run (le4field.py), so a refactor that silently
+moves the conformance profile cannot pass unnoticed again.
+
+## The irreducible residue: two witnesses, dissected
+
+Of the 2497 equal-hop divergences, exactly 2 survive every key - both
+implementations conformant, routes different. Both are CANBERRA ->
+SHACKLETON dispatches at t0 = 43199 (the latest query time), both
+3-hop, and they share one anatomy: same entry contact, two parallel
+interior relays (plan_000720: 12->{10,3}->13; plan_000870:
+1->3->{11,8}->13), arrival equal because waiting absorbs the interior
+difference, and the route's minimum end time achieved on a SHARED
+element - the common first contact in plan_000870 (ends 44985, against
+interior legs ending 76296 and 67908) and the generator's 86400
+horizon clip in plan_000720 (every leg on both routes ends exactly at
+the horizon). The differing segment is strictly termination-slack.
+
+That is the general shape of SABR's irreducible nondeterminism: the
+four keys observe a route only through (arrival, length, min-end,
+first hop), so any two routes that differ strictly between the first
+hop and the destination, with the binding minimum outside the
+differing segment, are indistinguishable to the standard. The latent
+incidence on this corpus is 5 of 4093 dispatches (0.12%) with two or
+more distinct routes at the full optimal tuple; 2 of the 5 realized as
+cross-implementation divergence. Two consequences:
+
+- A full-tuple tie forces an equal entry node, and 3.2.8.1.4 b)
+  consumes only the entry node - so SABR's selection is
+  ACTION-deterministic at every latent tie. The residue is
+  representational, not behavioral, in the no-volume regime.
+- Under 3.2.8.1.2 the representational choice becomes state: the MTVs
+  decremented are those of the contacts in the stored route object, so
+  two conformant implementations diverge in volume state exactly on
+  this residue. The nondeterminism the text permits is invisible to
+  the forwarded bundle and visible to the bookkeeping.
+
+Discrimination ladder over the same corpus (which key pins route
+identity, given the complete candidate list): keys 1-2 suffice on
+24.6% of dispatches; 65.0% need key 3; 10.3% need key 4; 0.12% defeat
+the ladder. In the integer-second cislunar regime the standard's
+primary objective does a quarter of the deciding and the "tiebreak"
+tail does the rest - a load profile worth knowing before treating
+arrival optimality as the design's center of gravity.
+
+## The route class is pinned three ways
+
+Seam check on the model's no-reuse constraint: is it SABR or a
+modeling choice? The text answers three times, incompatibly:
+
+1. §1.4 defines a route as "a sequence of contacts" with chaining and
+   one weak temporal condition ("the time at which contact i+1 ends
+   is no earlier than the time at which contact i begins"). No
+   contact-uniqueness, no node-uniqueness: reuse is permitted by the
+   definition. Feasibility arrives separately (3.2.4.1.1).
+2. §3.2.1 declares the contact graph "a conceptual directed acyclic
+   graph" - but its edge rule d) is purely topological (an edge
+   wherever one contact's receiving node is another's sending node,
+   no temporal guard), so any bidirectional contact pair produces a
+   2-cycle. The acyclicity declaration is false on every plan in this
+   corpus and on any network with two-way links.
+3. §3.2.6.10 generates routes as "the shortest path ... through the
+   contact graph" (Yen) - paths are loopless by definition, so the
+   generation procedure quietly produces only no-reuse routes, leaning
+   on the path notion to terminate in the cyclic graph the text says
+   is acyclic.
+
+So: the model's per-route no-reuse (`expand`'s contains check) is the
+§3.2.6.10 generation class, not the §1.4 route class; the grading
+oracle's reuse-allowed enumeration is the §1.4 class - the
+"relaxation" was the faithful reading all along. The selection-time
+footprint of the difference is provably nil (at the globally minimal
+arrival, any reuse-bearing chain loop-erases to a no-reuse route with
+strictly fewer hops, so no reuse-bearing tuple exists at minimal hop
+count). Where the class choice is NOT nil: route-list generation
+(Yen's de-duplication semantics) and the T3a loop layer - node
+revisits within a route remain in the model's class (only contact
+repeats are excluded), and forwarding-level loops across custody
+transfers are the genuinely open question, which the route-class fiat
+neither creates nor settles. The §3.2.8.1 history-list NOTE concedes
+loops at exactly that layer.
 
 ## Artifacts
 

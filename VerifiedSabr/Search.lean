@@ -42,12 +42,18 @@ def termLater : Option Time → Option Time → Bool
   | some _, none   => false
   | some x, some y => decide (y < x)
 
-/-- Key-4 comparison: entry-node order with the root (`none`) first; node
-    strings compare lexicographically (Delta 8). [algorithm.md §10.1] -/
+/-- Key-4 comparison: entry-node order with the root (`none`) first. The
+    standard compares node NUMBERS; identifiers arrive as canonical decimal
+    strings (no leading zeros), where shorter-string-first then lexicographic
+    is exactly numeric order. Equal lengths fall back to plain string order,
+    which also covers the lettered toy plans (Delta 8, resolved).
+    [algorithm.md §10.1] -/
 def entryLE : Option Node → Option Node → Bool
   | none,   _      => true
   | some _, none   => false
-  | some s, some t => decide (s ≤ t)
+  | some s, some t =>
+      decide (s.length < t.length)
+      || (s.length == t.length && decide (s ≤ t))
 
 /-- The §3.2.8.1.4 a) best-route order as a total comparison on candidates:
     arrival ↑, hop count ↑, termination time ↓, entry node ↑. A full tie

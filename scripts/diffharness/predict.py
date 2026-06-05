@@ -83,10 +83,14 @@ lean side - VerifiedSabr/Search.lean AS OF THE RECORDING RUN:
   the pop order, keys 3-4 BLIND - the comparator never consults
   termination or entry, so the 2024 key-3 and 49 key-4 deviations are
   frontier-order artifacts gated by the closed list, NOT string-order
-  effects (the le4 string comparison postdates the recording). The
-  --order le4 mode mirrors the current source (3e4d2a0+) for the
-  version differential; its corpus run is meaningful only against a
-  binary rebuilt from that source, not against out_diff_v3.
+  effects (the le4 comparison postdates the recording). The --order le4
+  mode mirrors the current source for the version differential; its
+  corpus run is meaningful only against a binary rebuilt from that
+  source, not against out_diff_v3. Key-4 history within le4:
+  pure-lexicographic entry order (3e4d2a0, field footprint 106/4093
+  digit-length deviations) was replaced 2026-06-05 by
+  shorter-first-then-lex, numeric order on canonical decimal ids
+  (Delta 8 resolved); the mirror implements the current order.
 
 Usage:
   predict.py predict --results out_diff_v3/diff_results.jsonl \
@@ -212,8 +216,9 @@ def lean_route(contacts, ranges, src, dst, t0, order="twokey"):
 
     order="twokey" mirrors the recording binary (66948c9): lexicographic
     (arrival, hop count), leftmost tie. order="le4" mirrors the current
-    source (3e4d2a0+): full 3.2.8.1.4 a) comparison with termination
-    down (root as +inf) and entry node up as strings.
+    source: full 3.2.8.1.4 a) comparison with termination down (root as
+    +inf) and entry node up, numerically via length-then-lex on the
+    decimal id strings.
 
     contacts/ranges: raw-token tuples in FILE order; src/dst are node
     strings. Returns hops as (from, to, tStart) int triples plus the
@@ -249,11 +254,11 @@ def lean_route(contacts, ranges, src, dst, t0, order="twokey"):
             if m[3] is None:
                 return False
             return m[3] < c[3]
-        if c[4] is None:		# entryLE, root first, string order
-            return True
+        if c[4] is None:		# entryLE, root first; length-then-lex
+            return True		# = numeric on canonical decimal ids
         if m[4] is None:
             return False
-        return c[4] <= m[4]
+        return (len(c[4]), c[4]) <= (len(m[4]), m[4])
 
     le = le_twokey if order == "twokey" else le4
 

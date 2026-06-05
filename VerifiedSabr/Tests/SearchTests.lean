@@ -120,6 +120,13 @@ def candRoot : Cand := { hops := [], arrival := 0 }
 #guard termLater none (some 10) == true   -- root outlasts any bounded term
 #guard entryLE none (some "B1") == true   -- root ordered first
 
+-- Delta 8 resolution pins: key 4 is numeric on canonical decimal ids
+-- (shorter-first beats lexicographic). [algorithm.md §10.1]
+#guard entryLE (some "2") (some "10") == true    -- 2 < 10 numerically
+#guard entryLE (some "10") (some "2") == false   -- "10" < "2" only as strings
+#guard entryLE (some "10") (some "11") == true   -- equal length: lex = numeric
+#guard entryLE (some "9") (some "9") == true     -- reflexive
+
 -- Visited-set identity finding: keys 2–4 are explored-set-relative.
 -- [algorithm.md §8.3; docs/notes/2026-06-05-visited-list-finding.md]
 -- s closes via the 3-hop prefix (arrival 3 beats 4), so [vQ1, vS] drops and
