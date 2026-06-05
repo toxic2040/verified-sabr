@@ -681,6 +681,27 @@ ipn endpoints have and dtn-scheme endpoints lack. Sub-second-light-time
 regimes or floating-point implementations would make rounding at key 1
 a conformance question the text does not answer.
 
+A subtler boundary is the selection key itself, where the text is
+last-byte and both implementations are first-byte. §3.2.8.1.4 a) 1)
+ranks candidates by projected bundle arrival time, which §3.2.6.7
+defines as the last-byte arrival - the first-byte arrival plus the
+radiation latency EVC/rate of the contact before the terminal vertex -
+whereas the reference scores first-byte best-case arrival (§3.2.4.2),
+and so does ION 4.1.4, whose route search sets arrival to transmit
+time plus OWLT, calls it best case, and confines the rate term to
+volume accounting. The two keys coincide on uniform-rate plans and
+part on mixed-rate ones only through the per-route EVC/rate term, so a
+last-byte-faithful implementation diverges by an amount gated by
+bundle size: on corpus_v3 (44099 routable dispatches) megabyte-scale
+bundles invert the key-1 winner on 16 to 23% of dispatches and
+kilobyte-scale bundles on essentially none (0 to 12), the rest of the
+apparent divergence being first-byte ties already counted as route
+multiplicity. Both the reference and ION select on first-byte, so the
+closure result holds for the convention the implementations share; the
+last-byte selection the text specifies is implemented by neither, and
+a faithful realization of it is a distinct conformant reading this
+audit does not cover.
+
 ## 9. Why the closure claim should be believed
 
 A reader of a result this null-shaped - "the implementations were
