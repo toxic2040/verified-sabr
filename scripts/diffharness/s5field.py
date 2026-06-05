@@ -47,9 +47,23 @@ BIN = Path(__file__).resolve().parents[2] / ".lake" / "build" / "bin" \
     / "sabrsearch"
 
 
+def load_queries(pdir):
+    """queries.jsonl ({src,dst,t0} lines), or the corpus_v3-family
+    pairs.jsonl (query-flagged pairs with a single t0_s each)."""
+    qf = pdir / "queries.jsonl"
+    if qf.exists():
+        return [json.loads(line) for line in open(qf)]
+    out = []
+    for line in open(pdir / "pairs.jsonl"):
+        p = json.loads(line)
+        if p.get("query"):
+            out.append({"src": p["src"], "dst": p["dst"], "t0": p["t0_s"]})
+    return out
+
+
 def run_plan(pdir):
     node_map = json.load(open(pdir / "plan_manifest.json"))["node_map"]
-    queries = [json.loads(line) for line in open(pdir / "queries.jsonl")]
+    queries = load_queries(pdir)
     qtext = "".join(f"{node_map[q['src']]} {node_map[q['dst']]} {q['t0']}\n"
                     for q in queries)
     with tempfile.NamedTemporaryFile("w", suffix=".txt") as qf:
@@ -95,8 +109,9 @@ def cmd_run(args):
     if outp.exists():
         for line in open(outp):
             done.add(json.loads(line)["plan_id"])
-    plans = [p for p in sorted(corpus.glob("dsn_real_v1_plan_*"))
-             if p.name not in done]
+    plans = [p for p in sorted(corpus.glob(args.glob))
+             if p.is_dir() and (p / "contact_plan.ionrc").exists()
+             and p.name not in done]
     print(f"{len(done)} plans done, {len(plans)} to go")
     with open(outp, "a") as sink, \
             ProcessPoolExecutor(max_workers=cpu_count()) as pool:
@@ -237,6 +252,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
     r.add_argument("--corpus", required=True)
+    r.add_argument("--glob", default="dsn_real_v1_plan_*")
     r.add_argument("--out", default="out_s5/s5_results.jsonl")
     r.set_defaults(fn=cmd_run)
     a = sub.add_parser("analyze")

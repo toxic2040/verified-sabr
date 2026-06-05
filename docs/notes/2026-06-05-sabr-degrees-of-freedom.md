@@ -56,7 +56,9 @@ verdicts are conditional on all of these simultaneously:
    bidirectional contact pair forms a 2-cycle. The declaration is false
    on every plan in both corpora and on any network with two-way links.
    This is a flat internal contradiction, demonstrable from the text
-   and any real contact plan, depending on no implementation.
+   and any real contact plan, depending on no implementation. It now
+   stands alone as 2026-06-05-sabr-acyclicity-erratum.md, with witness
+   and minimal fixes, because it needs nothing else in this note.
 3. **The route class is pinned three ways**: §1.4 (sequences, reuse
    permitted), §3.2.1 (the false acyclicity), §3.2.6.10 (generation by
    loopless paths). Detail in its own section below.
@@ -419,6 +421,86 @@ remains live is in what implementations REMEMBER, not what they choose:
 already showed route-object identity becomes diverging MTV state. The
 EVL/volume layer is the open frontier; route-selection hardening is the
 settled part.
+
+## What drives the ladder: multiplicity, not OWLT
+
+The planned transition curve - trace the OWLT value at which the
+discrimination ladder inverts, using the helio bands - came back flat
+and thereby answered a better question. All four bands (250 plans
+each, key-1 two-sided clean, every dispatch conformant):
+
+| family       | owlt        | topology                  | keys 1-2 pin |
+|--------------|-------------|---------------------------|--------------|
+| corpus_v3    | 0-1 s       | dense 13-node lunar mesh  | 24.6%        |
+| helio B0     | 0-1 s       | sparse 7-node fixture     | 99.0%        |
+| helio B1-B3  | 10-3300 s   | sparse 7-node fixture     | 98.2-99.4%   |
+| dsn_real_v1  | 1-84,725 s  | star, antenna multiplicity| 96.3%        |
+
+B0 shares corpus_v3's owlt regime and shows none of its tiebreak
+dominance. The load-bearing variable is arrival-tied route
+MULTIPLICITY - topology density times window overlap - with owlt-0
+quantization an amplifier that needs density to express. The original
+pre-registered P-H1 ("tie rate collapses with OWLT scale") is
+partially falsified: the collapse is topology-driven, and the OWLT
+axis alone, at fixed sparse topology, does nothing. Registered for the
+missing cell of the two-by-two (dense topology at large owlt), from
+mechanism: HETEROGENEOUS large owlts break ties even in dense
+topologies (the DSN evidence), HOMOGENEOUS large owlts preserve them -
+the variable is arrival-value degeneracy across parallel routes, which
+owlt-0 guarantees and equal owlts at any scale reproduce.
+
+The design statement this licenses, named: SABR's four keys are a
+fixed lexicographic order, but which key is load-bearing is a property
+of the plan's multiplicity structure, which the standard never indexes
+- a quarter of decisions by arrival on the dense quantized mesh,
+near-all by arrival everywhere else, with the "tiebreak" tail doing
+75% of the deciding in the first world and ~1-4% in the others. The
+standard is written as if one priority ordering serves all regimes;
+the corpora show it serves them completely differently. Arrival
+primacy is not wrong - its INFORMATIVENESS is regime-contingent, and
+the standard treats a collapsed objective identically to a
+discriminating one. (This partially answers the key-1-primacy
+question without the volume layer; whether arrival optimality
+predicts delivery outcomes under contention still lives there.)
+
+## The engine measures underspecification directly
+
+Filed as convergence, better read as localization: across regimes,
+the differential disagreement signal concentrates exactly where the
+text is silent or self-contradictory. The implementation-disagreement
+set and the deferred-degrees-of-freedom set are the same set,
+discovered independently - profiles diverge in the quantized regime
+(where the unpinned candidate list decides) and along the margin axis
+(where the ops-defined value decides), and converge everywhere the
+text actually specifies. Consequence for the original ION headline:
+the 12.5% key-2 excess was entirely a quantized-regime phenomenon; in
+deep space ION and this implementation agree, and the durable
+deep-space findings are the standard's, not ION's - the margin axis
+moving 12.3% of real-corpus arrivals, and the acyclicity
+contradiction. Any writeup sorts accordingly: deferred degrees of
+freedom as the spine, implementation deviations as the regime-indexed
+appendix. The instrument generalizes: run two or more faithful
+implementations across regimes and the disagreement atlas maps where
+any routing standard's text does less work than it appears to.
+
+One methodological sentence worth keeping: the audit handles the
+margin by grading each implementation in its declared margin frame and
+labeling cross-frame comparisons - exactly the explicitness about a
+deferred parameter that the standard fails to apply to itself. The fix
+is known and cheap; the instrument already practices it.
+
+## The volume layer is a binary question
+
+Action-determinism at every latent tie means representational residue
+has exactly one path to behavioral divergence: §3.2.8.1.2 MTV
+decrements against the stored route object. So the EVL/volume build is
+not an open-ended layer - it answers one question: does post-selection
+volume-state evolution amplify route-object divergence into different
+delivery outcomes under contention, or does action-determinism keep
+deliveries identical despite divergent stored state? If the latter,
+the reliability question collapses to "settled, modulo the four
+deferred parameters"; if the former, reliability genuinely lives in
+the volume layer and the residue analysis says exactly where to look.
 
 ## Artifacts
 
