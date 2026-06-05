@@ -612,10 +612,13 @@ candidate already consumed.
 Three consequences are pinned:
 
 - **Soundness (T1): unaffected**, by the certifying check (§8.2).
-- **Completeness/optimality: open**, deferred to the T2 line together with the
-  §3.2.8.1.4 tie-break (Delta 5). Any T2-line statement must either carry a
-  hypothesis excluding the history-divergence pattern or be proved against the
-  closed-list search as actually implemented.
+- **Optimality: CLOSED (T2 plan, 2026-06-05).** `routeSearch_optimal` (§10.3)
+  proves the returned route's arrival minimal over *all* valid routes, against
+  the closed-list search as actually implemented, with no history-divergence
+  hypothesis — on `PlanNonnegOwlt` plans the visited set never costs arrival
+  optimality, demoting the observation below to "real but not
+  arrival-relevant." **Completeness: open** — `none` exactly when no route
+  exists is the §10.4 fuel obligation.
 - **Differential testing: unaffected as an agreement criterion**, because the
   oracle (ION) closes contacts the same way; both sides explore the same
   restricted route space. A disagreement therefore still indicates a model or
@@ -719,10 +722,12 @@ arrival-monotonicity cornerstone (`arrivalTime_mono`), the splicing
 machinery, and the loop-erasure reduction (`loop_erasure`) are proved and
 kernel-checked. The plan-level nonnegative-OWLT invariant is named
 `PlanNonnegOwlt`, has an executable checker `checkPlanNonnegOwlt`, and
-feeds the wrapper lemma `loop_erasure_of_plan_nonneg`; the
-history-divergence discharge and fuel sufficiency remain staged. Wording
-follows the §7 pattern: candidate statements are labeled as such, and
-nothing below claims a proof that does not exist in the tree.
+feeds the wrapper lemma `loop_erasure_of_plan_nonneg`. T2b itself is now
+proved and kernel-checked: `searchLoop_optimal` via the `LoopInv`
+invariant, public form `routeSearch_optimal` (§10.3). Fuel sufficiency
+(§10.4) remains staged. Wording follows the §7 pattern: candidate
+statements are labeled as such, and nothing below claims a proof that does
+not exist in the tree.
 
 ### 10.1 The model's 4-key comparison (Delta 8 noted)
 
@@ -764,7 +769,7 @@ Together these say the selection step always extracts a §3.2.8.1.4-minimal
 frontier element. T1 is unaffected by construction: the certifying validity
 re-check never consults the comparison.
 
-### 10.3 T2b — optimality (candidate statement, proof staged)
+### 10.3 T2b — optimality (proved, kernel-checked: `routeSearch_optimal`)
 
 **Statement (T2b).** If every contact of `cp` has nonnegative owlt and
 `routeSearch cp src dst t₀ = some r`, then for every `hops` with
@@ -793,7 +798,7 @@ plan. It costs nothing physically and is checkable on ingested plans.
 
 The competitor class is *all* valid routes — including routes that reuse
 contacts (`isValidRoute` does not require hop distinctness) and routes the
-closed-list search never enumerates (§8.3). Two reductions stage the proof at
+closed-list search never enumerates (§8.3). Two reductions carry the proof at
 this strength:
 
 - **Loop erasure (proved, kernel-checked: `loop_erasure`;
@@ -812,23 +817,43 @@ this strength:
   induction on length terminates in a duplicate-free route. Optimality over
   distinct-hop routes on a nonneg-owlt plan therefore implies optimality
   over all valid routes.
-- **History-divergence discharge (the §8.3 caveat).** The §8.2 dominance
-  argument does not cover continuations blocked by the no-reuse rule: the
-  closing candidate's history may contain a contact `x` that a dropped
-  candidate's earliest-arrival continuation needs. Staged discharge: when
-  every earliest-arrival continuation from closed contact `c` reuses some `x`
-  in the closing candidate's history, splice the closing candidate's
-  prefix-up-to-`x` with the continuation's suffix-after-`x`. The prefix
-  reaches `x` no later than any post-`c` reuse of `x` (monotonicity through
-  `c`), so the splice is feasible and arrives no later — and it strictly
-  shortens the combined hop list, so the construction terminates. Every prefix
-  of a popped candidate was itself popped and expanded (expansion happens only
-  on pop), so the spliced route's prefix was explored. If this argument closes
-  in Lean, T2b holds for the closed-list search as implemented,
-  unconditionally — upgrading §8.3's "completeness/optimality: open" to
-  closed, and demoting the finding-grade observation to "real but not
-  arrival-relevant." If it does not close, T2b falls back to the
-  §8.3-sanctioned form carrying an explicit no-history-divergence hypothesis.
+- **History-divergence discharge (proved, kernel-checked:
+  `searchLoop_optimal`; public form `routeSearch_optimal`).** The splice
+  sketch previously staged here proved unnecessary: the formalized argument
+  dissolves the divergence rather than repairing it. Anchor every competitor
+  at its *first open contact*: scanning a duplicate-free valid partial route
+  from the start, let `q` be the first hop not on the closed list, so the
+  prefix before `q` is all-closed and (when nonempty) ends at some settled
+  contact `z`. The loop invariant `LoopInv` carries four components:
+  `cands` — every frontier candidate satisfies `CandInv`, has
+  duplicate-free hops, and all its hops except the head are closed;
+  `settled` — per closed contact `z`, a closing arrival `aP` with (i) `aP`
+  ≤ every frontier arrival (pop order never decreases under nonneg owlt),
+  (ii) settled optimality: `aP` ≤ the arrival of every duplicate-free valid
+  partial route ending in `z`, and (iii) frontier residency: every
+  window-feasible extension of `z` by an *open* contact `q` is present in
+  the frontier with arrival ≤ `max aP q.start + q.owlt`; `srcCover` — the
+  root analog of residency for first hops out of `src`; `notDst` — no
+  closed contact has destination `dst` (a return preempts every close).
+  Residency is the state-local remnant of "closing `z` expanded it": the
+  expansion filter's no-reuse test cannot block `q`, because the closing
+  candidate's hops are all closed (`cands`) while `q` is open — exactly
+  where the history-divergence worry evaporates. Residency survives every
+  later step: popping a head-`q` candidate either drops it (`q` already
+  closed — obligation void) or closes `q` (obligation gone). From the
+  invariant, `frontier_bound`: the popped minimum's arrival ≤ the arrival
+  of every duplicate-free valid partial route containing an open contact —
+  read off the boundary, no induction, no splice. Settled optimality at
+  closing time is `frontier_bound` itself on the pre-state (the contact
+  being closed is still open there); at return, the returned route's last
+  contact has destination `dst`, which `notDst` keeps open, so
+  `frontier_bound` bounds every competitor. With `loop_erasure` reducing
+  competitors to duplicate-free routes, T2b holds for the closed-list
+  search as implemented, **unconditionally** on `PlanNonnegOwlt` plans —
+  §8.3's optimality concern is closed, and its finding-grade observation
+  demotes to "real but not arrival-relevant." (Completeness — `none` only
+  when no route exists — is the separate fuel obligation, §10.4, still
+  open.)
 
 ### 10.4 Fuel sufficiency
 
