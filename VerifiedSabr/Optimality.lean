@@ -218,19 +218,20 @@ structure LoopInv (cp : ContactPlan) (src dst : Node) (t₀ : Time)
         ∃ cand ∈ frontier, cand.hops.head? = some q
           ∧ cand.arrival ≤ max t₀ q.tStart + q.owlt)
 
-/-- The popped minimum bounds every duplicate-free feasible partial route
-    that still contains an open contact: the bound reads off the route's
-    first open boundary, with no splice and no induction. The all-closed
-    prefix ends at a settled contact whose residency block hands back a
-    frontier candidate across the boundary. [algorithm.md §10.3] -/
-theorem frontier_bound {cp : ContactPlan} {src dst : Node} {t₀ : Time}
-    {frontier : List Cand} {closed : List Contact} {best : Cand}
-    {rest : List Cand}
+/-- The boundary witness: every duplicate-free feasible partial route that
+    still contains an open contact is matched by a frontier candidate whose
+    arrival is no later — read off the route's first open boundary, with no
+    splice and no induction. The all-closed prefix ends at a settled
+    contact whose residency block hands back the candidate across the
+    boundary. In particular the frontier cannot be empty while such a route
+    exists. [algorithm.md §10.3, §10.4] -/
+theorem boundary_witness {cp : ContactPlan} {src dst : Node} {t₀ : Time}
+    {frontier : List Cand} {closed : List Contact}
     (hcp : PlanNonnegOwlt cp)
-    (hinv : LoopInv cp src dst t₀ frontier closed)
-    (hpick : pickMin frontier = some (best, rest)) :
+    (hinv : LoopInv cp src dst t₀ frontier closed) :
     ∀ Q aQ, PartialOk cp src Q → Q.Nodup → arrivalTime t₀ Q = some aQ →
-      (∃ y ∈ Q, y ∉ closed) → best.arrival ≤ aQ := by
+      (∃ y ∈ Q, y ∉ closed) →
+      ∃ cand ∈ frontier, cand.arrival ≤ aQ := by
   intro Q aQ hQ hnd ha hopen
   obtain ⟨Q₁, q, Q₂, hdec, hcl, hq⟩ := exists_first_open hopen
   subst hdec
@@ -252,13 +253,11 @@ theorem frontier_bound {cp : ContactPlan} {src dst : Node} {t₀ : Time}
       simpa [arrivalTime] using he
     subst he'
     rcases hinv.srcCover with ⟨root, hroot, _, hrootarr⟩ | hcov
-    · have h1 := le4_arrival_le (pickMin_min hpick root hroot)
-      have h2 : t₀ ≤ max t₀ q.tStart + q.owlt :=
+    · have h2 : t₀ ≤ max t₀ q.tStart + q.owlt :=
         le_trans (le_max_left _ _) (le_add_of_nonneg_right (hcp q hq_cp))
-      exact le_trans h1 (le_trans hrootarr (le_trans h2 hstep))
+      exact ⟨root, hroot, le_trans hrootarr (le_trans h2 hstep)⟩
     · obtain ⟨cand, hcand, _, hbound⟩ := hcov q hq_cp hq hsrc hw
-      have h1 := le4_arrival_le (pickMin_min hpick cand hcand)
-      exact le_trans h1 (le_trans hbound hstep)
+      exact ⟨cand, hcand, le_trans hbound hstep⟩
   · -- nonempty all-closed prefix ending at settled z
     rw [List.concat_eq_append] at hQ₁
     subst hQ₁
@@ -271,10 +270,24 @@ theorem frontier_bound {cp : ContactPlan} {src dst : Node} {t₀ : Time}
     have hjun : z.dest = q.source := chainOk_junction hQ.2.1
     have hwz : max aP q.tStart ≤ q.tEnd := le_trans (max_le_max haP le_rfl) hw
     obtain ⟨cand, hcand, _, hbound⟩ := hres q hq_cp hq hjun.symm hwz
-    have h1 := le4_arrival_le (pickMin_min hpick cand hcand)
     have h2 : max aP q.tStart + q.owlt ≤ max e q.tStart + q.owlt :=
       add_le_add (max_le_max haP le_rfl) le_rfl
-    exact le_trans h1 (le_trans hbound (le_trans h2 hstep))
+    exact ⟨cand, hcand, le_trans hbound (le_trans h2 hstep)⟩
+
+/-- The popped minimum bounds every duplicate-free feasible partial route
+    that still contains an open contact: `pickMin` minimality through the
+    boundary witness. [algorithm.md §10.3] -/
+theorem frontier_bound {cp : ContactPlan} {src dst : Node} {t₀ : Time}
+    {frontier : List Cand} {closed : List Contact} {best : Cand}
+    {rest : List Cand}
+    (hcp : PlanNonnegOwlt cp)
+    (hinv : LoopInv cp src dst t₀ frontier closed)
+    (hpick : pickMin frontier = some (best, rest)) :
+    ∀ Q aQ, PartialOk cp src Q → Q.Nodup → arrivalTime t₀ Q = some aQ →
+      (∃ y ∈ Q, y ∉ closed) → best.arrival ≤ aQ := by
+  intro Q aQ hQ hnd ha hopen
+  obtain ⟨cand, hcand, hb⟩ := boundary_witness hcp hinv Q aQ hQ hnd ha hopen
+  exact le_trans (le4_arrival_le (pickMin_min hpick cand hcand)) hb
 
 /-- Expansions of a well-formed candidate with fully closed hops are
     well-formed with closed non-head history. [algorithm.md §3, §10.3] -/
@@ -624,5 +637,405 @@ theorem routeSearch_optimal {cp : ContactPlan} {src dst : Node} {t₀ : Time}
           (loopInv_init cp src dst t₀) hs Q' aQ' hv' hnd' ha'
         exact ⟨a, aQ, har, haQ, le_trans hle hle'⟩
       · simp [hs, hv] at hr
+
+/-- `pickMin` extracts a permutation: the input is the minimum plus the
+    remainder. [algorithm.md §3.5, §10.4] -/
+theorem pickMin_perm : ∀ {l : List Cand} {m : Cand} {rest : List Cand},
+    pickMin l = some (m, rest) → l.Perm (m :: rest) := by
+  intro l
+  induction l with
+  | nil => intro m rest h; simp [pickMin] at h
+  | cons c tl ih =>
+      intro m rest h
+      simp only [pickMin] at h
+      cases hp : pickMin tl with
+      | none =>
+          rw [hp] at h
+          simp only [Option.some.injEq, Prod.mk.injEq, List.nil_eq] at h
+          obtain ⟨hm, hrest⟩ := h
+          have htl := pickMin_eq_none hp
+          subst htl hrest
+          rw [← hm]
+      | some mo =>
+          obtain ⟨mm, others⟩ := mo
+          rw [hp] at h
+          dsimp only at h
+          split at h
+          · injection h with hpair
+            injection hpair with hm hrest
+            rw [← hm, ← hrest]
+          · injection h with hpair
+            injection hpair with hm hrest
+            rw [← hm, ← hrest]
+            exact ((ih hp).cons c).trans (List.Perm.swap mm c others)
+
+/-- Filter length is monotone under pointwise predicate implication.
+    [algorithm.md §10.4] -/
+theorem length_filter_le_of_imp {α : Type*} {p q : α → Bool} :
+    ∀ {l : List α}, (∀ a ∈ l, p a = true → q a = true) →
+      (l.filter p).length ≤ (l.filter q).length := by
+  intro l
+  induction l with
+  | nil => intro _; exact le_rfl
+  | cons d tl ih =>
+      intro h
+      have ih' := ih fun a ha hpa => h a (List.mem_cons_of_mem _ ha) hpa
+      cases hp : p d with
+      | true =>
+          cases hq : q d with
+          | true => simp [hp, hq]; omega
+          | false =>
+              have hcontra := h d List.mem_cons_self hp
+              rw [hq] at hcontra
+              simp at hcontra
+      | false =>
+          cases hq : q d with
+          | true => simp [hp, hq]; omega
+          | false => simp [hp, hq]; omega
+
+/-- Filter length drops strictly when a member passes the weaker predicate
+    and fails the stronger one. [algorithm.md §10.4] -/
+theorem length_filter_lt_of_witness {α : Type*} {p q : α → Bool} :
+    ∀ {l : List α} {c : α}, (∀ a ∈ l, p a = true → q a = true) → c ∈ l →
+      p c = false → q c = true →
+      (l.filter p).length < (l.filter q).length := by
+  intro l
+  induction l with
+  | nil => intro c _ hc _ _; exact absurd hc List.not_mem_nil
+  | cons d tl ih =>
+      intro c h hc hpc hqc
+      have htl := fun a ha hpa => h a (List.mem_cons_of_mem _ ha) hpa
+      rcases List.mem_cons.1 hc with rfl | h1
+      · have hle := length_filter_le_of_imp (p := p) (q := q) htl
+        simp [hpc, hqc]
+        omega
+      · have ih' := ih htl h1 hpc hqc
+        cases hp : p d with
+        | true =>
+            have hq : q d = true := h d List.mem_cons_self hp
+            simp [hp, hq]; omega
+        | false =>
+            cases hq : q d with
+            | true => simp [hp, hq]; omega
+            | false => simp [hp, hq]; omega
+
+/-- Closing a fresh plan contact strictly shrinks the open-contact count.
+    [algorithm.md §10.4] -/
+theorem open_count_lt {cp closed : List Contact} {c : Contact}
+    (hc : c ∈ cp) (hf : c ∉ closed) :
+    (cp.filter fun x => !(c :: closed).contains x).length
+      < (cp.filter fun x => !closed.contains x).length := by
+  refine length_filter_lt_of_witness ?_ hc ?_ ?_
+  · intro a _ hpa
+    simp only [List.contains_cons, Bool.not_or, Bool.and_eq_true] at hpa
+    exact hpa.2
+  · simp
+  · cases hb : closed.contains c with
+    | false => simp
+    | true => exact absurd ((List.contains_iff_mem).1 hb) hf
+
+/-- An expansion inserts at most one candidate per plan contact.
+    [algorithm.md §8.4, §10.4] -/
+theorem expand_length_le (cp : ContactPlan) (src : Node) (cand : Cand) :
+    (expand cp src cand).length ≤ cp.length := by
+  unfold expand
+  rw [List.length_map]
+  exact List.length_filter_le _ _
+
+/-- Expansions never produce the root shape: every inserted candidate has a
+    nonempty hop list. [algorithm.md §10.4] -/
+theorem expand_hops_ne_nil {cp : ContactPlan} {src : Node} {cand cand' : Cand}
+    (h : cand' ∈ expand cp src cand) : cand'.hops.isEmpty = false := by
+  unfold expand at h
+  rw [List.mem_map] at h
+  obtain ⟨c, _, hcand'⟩ := h
+  subst hcand'
+  rfl
+
+/-- Loop potential: pending candidates, plus the open plan contacts and the
+    rootlike candidates each weighted at one full expansion. A drop costs
+    one; a root expansion or a close costs at least two. [algorithm.md
+    §8.4, §10.4] -/
+def loopMeasure (cp : ContactPlan) (frontier : List Cand)
+    (closed : List Contact) : Nat :=
+  frontier.length
+    + (cp.filter fun x => !closed.contains x).length * (cp.length + 1)
+    + (frontier.filter fun cand => cand.hops.isEmpty).length * (cp.length + 1)
+
+/-- Drop step: the measure strictly decreases. [algorithm.md §10.4] -/
+theorem loopMeasure_drop {cp : ContactPlan} {frontier rest : List Cand}
+    {best : Cand} {closed : List Contact} {c : Contact} {tl : List Contact}
+    (hpick : pickMin frontier = some (best, rest))
+    (hshape : best.hops = c :: tl) :
+    loopMeasure cp rest closed < loopMeasure cp frontier closed := by
+  have hperm := pickMin_perm hpick
+  have hlen : frontier.length = rest.length + 1 := by
+    simpa using hperm.length_eq
+  have hflen : (frontier.filter fun cand => cand.hops.isEmpty).length
+      = (rest.filter fun cand => cand.hops.isEmpty).length := by
+    have h1 := (hperm.filter (fun cand => cand.hops.isEmpty)).length_eq
+    simpa [List.filter_cons, hshape] using h1
+  unfold loopMeasure
+  rw [hlen, hflen]
+  omega
+
+/-- Root step: the measure decreases by at least two — the root retires
+    against at most one inserted candidate per plan contact. [algorithm.md
+    §10.4] -/
+theorem loopMeasure_root {cp : ContactPlan} {src : Node}
+    {frontier rest : List Cand} {best : Cand} {closed : List Contact}
+    (hpick : pickMin frontier = some (best, rest))
+    (hroot : best.hops = []) :
+    loopMeasure cp (expand cp src best ++ rest) closed + 2
+      ≤ loopMeasure cp frontier closed := by
+  have hperm := pickMin_perm hpick
+  have hlen : frontier.length = rest.length + 1 := by
+    simpa using hperm.length_eq
+  have hflen : (frontier.filter fun cand => cand.hops.isEmpty).length
+      = (rest.filter fun cand => cand.hops.isEmpty).length + 1 := by
+    have h1 := (hperm.filter (fun cand => cand.hops.isEmpty)).length_eq
+    simpa [List.filter_cons, hroot] using h1
+  have hexpf : ((expand cp src best).filter
+      fun cand => cand.hops.isEmpty) = [] := by
+    rw [List.filter_eq_nil_iff]
+    intro x hx
+    simp [expand_hops_ne_nil hx]
+  have hexplen := expand_length_le cp src best
+  unfold loopMeasure
+  rw [List.length_append, List.filter_append, hexpf, List.nil_append,
+    hlen, hflen, Nat.succ_mul]
+  omega
+
+/-- Close step: the measure decreases by at least two — the closed contact
+    retires against at most one inserted candidate per plan contact.
+    [algorithm.md §10.4] -/
+theorem loopMeasure_close {cp : ContactPlan} {src : Node}
+    {frontier rest : List Cand} {best : Cand} {closed : List Contact}
+    {c : Contact} {tl : List Contact}
+    (hpick : pickMin frontier = some (best, rest))
+    (hshape : best.hops = c :: tl) (hccp : c ∈ cp) (hfresh : c ∉ closed) :
+    loopMeasure cp (expand cp src best ++ rest) (c :: closed) + 2
+      ≤ loopMeasure cp frontier closed := by
+  have hperm := pickMin_perm hpick
+  have hlen : frontier.length = rest.length + 1 := by
+    simpa using hperm.length_eq
+  have hflen : (frontier.filter fun cand => cand.hops.isEmpty).length
+      = (rest.filter fun cand => cand.hops.isEmpty).length := by
+    have h1 := (hperm.filter (fun cand => cand.hops.isEmpty)).length_eq
+    simpa [List.filter_cons, hshape] using h1
+  have hexpf : ((expand cp src best).filter
+      fun cand => cand.hops.isEmpty) = [] := by
+    rw [List.filter_eq_nil_iff]
+    intro x hx
+    simp [expand_hops_ne_nil hx]
+  have hexplen := expand_length_le cp src best
+  have hopen := open_count_lt hccp hfresh
+  have hopenmul : ((cp.filter fun x => !(c :: closed).contains x).length + 1)
+        * (cp.length + 1)
+      ≤ (cp.filter fun x => !closed.contains x).length * (cp.length + 1) :=
+    Nat.mul_le_mul_right _ hopen
+  rw [Nat.succ_mul] at hopenmul
+  unfold loopMeasure
+  rw [List.length_append, List.filter_append, hexpf, List.nil_append,
+    hlen, hflen]
+  omega
+
+/-- The initial state measures exactly the executable's fuel.
+    [algorithm.md §8.4, §10.4] -/
+theorem loopMeasure_init (cp : ContactPlan) (t₀ : Time) :
+    loopMeasure cp [{ hops := [], arrival := t₀ }] []
+      = (cp.length + 1) * (cp.length + 1) + 1 := by
+  unfold loopMeasure
+  simp only [List.length_cons, List.length_nil, zero_add,
+    List.contains_eq_mem, List.not_mem_nil, decide_false, Bool.not_false,
+    List.filter_true, List.isEmpty_nil, List.filter_cons_of_pos,
+    List.filter_nil, one_mul]
+  rw [Nat.add_mul, Nat.one_mul]
+  omega
+
+/-- The frontier cannot be empty while a duplicate-free valid route exists:
+    the boundary witness is a frontier member. [algorithm.md §10.4] -/
+theorem frontier_ne_nil {cp : ContactPlan} {src dst : Node} {t₀ : Time}
+    {frontier : List Cand} {closed : List Contact} {Q : List Contact}
+    {aQ : Time}
+    (hcp : PlanNonnegOwlt cp)
+    (hinv : LoopInv cp src dst t₀ frontier closed)
+    (hQv : isValidRoute cp src dst t₀ Q = true) (hQnd : Q.Nodup)
+    (hQa : arrivalTime t₀ Q = some aQ) :
+    frontier ≠ [] := by
+  obtain ⟨hh, hl, hch, _⟩ := validRoute_decode hQv
+  cases hgl : Q.getLast? with
+  | none => rw [hgl] at hl; simp at hl
+  | some last =>
+      have hldst : last.dest = dst := by
+        rw [hgl] at hl
+        exact Option.some.inj hl
+      obtain ⟨cand, hcand, _⟩ := boundary_witness hcp hinv Q aQ
+        ⟨hh, hch, validRoute_hops_mem hQv⟩ hQnd hQa
+        ⟨last, List.mem_of_getLast? hgl,
+          fun hmem => hinv.notDst last hmem hldst⟩
+      intro hnil
+      rw [hnil] at hcand
+      exact absurd hcand List.not_mem_nil
+
+/-- Fuel outlasts the loop: under the invariant, with fuel at least the
+    measure and a duplicate-free valid route in existence, `searchLoop`
+    answers `some` — and the answer passes the validity check. Each
+    recursing branch pays its measure decrement; an empty frontier would
+    contradict the boundary witness. [algorithm.md §10.4] -/
+theorem searchLoop_progress (cp : ContactPlan) (src dst : Node) (t₀ : Time)
+    (hcp : PlanNonnegOwlt cp) :
+    ∀ (fuel : Nat) (frontier : List Cand) (closed : List Contact),
+      LoopInv cp src dst t₀ frontier closed →
+      loopMeasure cp frontier closed ≤ fuel →
+      (∃ Q aQ, isValidRoute cp src dst t₀ Q = true ∧ Q.Nodup
+        ∧ arrivalTime t₀ Q = some aQ) →
+      ∃ hops, searchLoop cp src dst fuel frontier closed = some hops
+        ∧ isValidRoute cp src dst t₀ hops = true := by
+  intro fuel
+  induction fuel with
+  | zero =>
+      intro frontier closed hinv hfuel hQ
+      obtain ⟨Q, aQ, hQv, hQnd, hQa⟩ := hQ
+      exfalso
+      cases hf : frontier with
+      | nil => exact frontier_ne_nil hcp hinv hQv hQnd hQa hf
+      | cons a l =>
+          rw [hf] at hfuel
+          unfold loopMeasure at hfuel
+          simp only [List.length_cons] at hfuel
+          omega
+  | succ n ih =>
+      intro frontier closed hinv hfuel hQ
+      rw [searchLoop]
+      cases hp : pickMin frontier with
+      | none =>
+          obtain ⟨Q, aQ, hQv, hQnd, hQa⟩ := hQ
+          exact absurd (pickMin_eq_none hp)
+            (frontier_ne_nil hcp hinv hQv hQnd hQa)
+      | some pr =>
+          obtain ⟨best, rest⟩ := pr
+          simp only
+          by_cases hret : (best.node src == dst && !best.hops.isEmpty) = true
+          · -- return branch: the popped candidate is a valid route
+            rw [if_pos hret]
+            refine ⟨best.hops.reverse, rfl, ?_⟩
+            rw [Bool.and_eq_true] at hret
+            obtain ⟨hnode, hne⟩ := hret
+            have hnodedst : best.node src = dst := beq_iff_eq.mp hnode
+            have hne' : best.hops ≠ [] := by
+              intro h0
+              rw [h0] at hne
+              simp at hne
+            obtain ⟨hbi, _, _⟩ := hinv.cands best (pickMin_mem hp).1
+            obtain ⟨hmem, hchain, hdep, hcache⟩ := hbi
+            simp only [isValidRoute, Bool.and_eq_true]
+            refine ⟨⟨⟨⟨⟨?_, ?_⟩, ?_⟩, hchain⟩, ?_⟩, ?_⟩
+            · -- nonempty
+              cases hr : best.hops.reverse with
+              | nil => exact absurd (List.reverse_eq_nil_iff.mp hr) hne'
+              | cons a l => rfl
+            · -- departs src
+              cases hr : best.hops.reverse with
+              | nil => exact absurd (List.reverse_eq_nil_iff.mp hr) hne'
+              | cons a l =>
+                  rw [hr] at hdep
+                  dsimp only at hdep
+                  simp [hdep]
+            · -- terminates at dst
+              cases hhh : best.hops with
+              | nil => exact absurd hhh hne'
+              | cons a l =>
+                  have hd : a.dest = dst := by
+                    have hn : best.node src = a.dest := by
+                      simp [Cand.node, hhh]
+                    rw [← hn]
+                    exact hnodedst
+                  rw [List.getLast?_reverse]
+                  simp [hd]
+            · -- plan-drawn
+              rw [List.all_eq_true]
+              exact fun x hx =>
+                (List.contains_iff_mem).2 (hmem x (List.mem_reverse.1 hx))
+            · -- arrival defined
+              rw [hcache]
+              exact Option.isSome_some
+          · rw [if_neg hret]
+            cases hh : best.hops with
+            | nil =>
+                simp only
+                refine ih _ _ (hinv.root_step hcp hp hh) ?_ hQ
+                have hstep := loopMeasure_root (cp := cp) (src := src) (closed := closed) hp hh
+                omega
+            | cons c tl =>
+                simp only
+                by_cases hcl : closed.contains c = true
+                · rw [if_pos hcl]
+                  refine ih _ _
+                    (hinv.drop hp (by simp [hh]) ((List.contains_iff_mem).1 hcl))
+                    ?_ hQ
+                  have hstep := loopMeasure_drop (cp := cp) (closed := closed) hp hh
+                  omega
+                · rw [if_neg hcl]
+                  have hfresh : c ∉ closed := fun hmem =>
+                    hcl ((List.contains_iff_mem).2 hmem)
+                  have hcdest : c.dest ≠ dst := by
+                    intro hd
+                    apply hret
+                    rw [Bool.and_eq_true]
+                    refine ⟨?_, ?_⟩
+                    · rw [beq_iff_eq]
+                      simp [Cand.node, hh, hd]
+                    · rw [hh]; rfl
+                  have hccp : c ∈ cp := by
+                    obtain ⟨hbi, _, _⟩ := hinv.cands best (pickMin_mem hp).1
+                    exact hbi.1 c (by rw [hh]; exact List.mem_cons_self)
+                  refine ih _ _
+                    (hinv.close_step hcp hp hh hfresh hcdest) ?_ hQ
+                  have hstep := loopMeasure_close (cp := cp) (src := src)
+                    hp hh hccp hfresh
+                  omega
+
+/-- Completeness, public form: on a nonnegative-OWLT plan, if any valid
+    route exists, `routeSearch` answers `some`. [algorithm.md §10.4] -/
+theorem routeSearch_complete {cp : ContactPlan} {src dst : Node} {t₀ : Time}
+    {Q : List Contact}
+    (hcp : PlanNonnegOwlt cp)
+    (hQ : isValidRoute cp src dst t₀ Q = true) :
+    ∃ r, routeSearch cp src dst t₀ = some r := by
+  obtain ⟨_, _, _, aQ, haQ⟩ := validRoute_decode hQ
+  obtain ⟨Q', aQ', hnd', _, hv', ha', _⟩ :=
+    loop_erasure_of_plan_nonneg hcp hQ haQ
+  obtain ⟨hops, hs, hval⟩ := searchLoop_progress cp src dst t₀ hcp
+    ((cp.length + 1) * (cp.length + 1) + 1) [{ hops := [], arrival := t₀ }] []
+    (loopInv_init cp src dst t₀) (le_of_eq (loopMeasure_init cp t₀))
+    ⟨Q', aQ', hv', hnd', ha'⟩
+  refine ⟨hops, ?_⟩
+  unfold routeSearch
+  simp [hs, hval]
+
+/-- The search decides route existence: `none` exactly when no valid route
+    exists. With T1 (soundness), T2a (selection), and T2b (optimality) this
+    makes `routeSearch` a verified decision procedure for earliest-arrival
+    routing on nonneg-OWLT plans. [algorithm.md §10.4] -/
+theorem routeSearch_none_iff {cp : ContactPlan} {src dst : Node} {t₀ : Time}
+    (hcp : PlanNonnegOwlt cp) :
+    routeSearch cp src dst t₀ = none
+      ↔ ∀ Q, isValidRoute cp src dst t₀ Q = false := by
+  constructor
+  · intro hnone Q
+    cases hQ : isValidRoute cp src dst t₀ Q with
+    | false => rfl
+    | true =>
+        obtain ⟨r, hr⟩ := routeSearch_complete hcp hQ
+        rw [hr] at hnone
+        exact absurd hnone (by simp)
+  · intro hall
+    cases hr : routeSearch cp src dst t₀ with
+    | none => rfl
+    | some r =>
+        have hv := routeSearch_sound cp src dst t₀ r hr
+        rw [hall r] at hv
+        exact absurd hv (by simp)
 
 end VerifiedSabr

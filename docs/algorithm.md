@@ -617,8 +617,11 @@ Three consequences are pinned:
   the closed-list search as actually implemented, with no history-divergence
   hypothesis — on `PlanNonnegOwlt` plans the visited set never costs arrival
   optimality, demoting the observation below to "real but not
-  arrival-relevant." **Completeness: open** — `none` exactly when no route
-  exists is the §10.4 fuel obligation.
+  arrival-relevant." **Completeness: CLOSED (T2 plan, 2026-06-05).**
+  `routeSearch_complete` / `routeSearch_none_iff` (§10.4): on
+  `PlanNonnegOwlt` plans, `none` exactly when no valid route exists — the
+  fuel dominates the loop's potential, and the frontier cannot empty while
+  a valid route remains.
 - **Differential testing: unaffected as an agreement criterion**, because the
   oracle (ION) closes contacts the same way; both sides explore the same
   restricted route space. A disagreement therefore still indicates a model or
@@ -722,12 +725,14 @@ arrival-monotonicity cornerstone (`arrivalTime_mono`), the splicing
 machinery, and the loop-erasure reduction (`loop_erasure`) are proved and
 kernel-checked. The plan-level nonnegative-OWLT invariant is named
 `PlanNonnegOwlt`, has an executable checker `checkPlanNonnegOwlt`, and
-feeds the wrapper lemma `loop_erasure_of_plan_nonneg`. T2b itself is now
+feeds the wrapper lemma `loop_erasure_of_plan_nonneg`. T2b itself is
 proved and kernel-checked: `searchLoop_optimal` via the `LoopInv`
 invariant, public form `routeSearch_optimal` (§10.3). Fuel sufficiency
-(§10.4) remains staged. Wording follows the §7 pattern: candidate
-statements are labeled as such, and nothing below claims a proof that does
-not exist in the tree.
+and completeness are proved and kernel-checked: `searchLoop_progress`
+via the `loopMeasure` potential, public forms `routeSearch_complete` and
+`routeSearch_none_iff` (§10.4). The T2 line is complete. Wording follows
+the §7 pattern: candidate statements are labeled as such, and nothing
+below claims a proof that does not exist in the tree.
 
 ### 10.1 The model's 4-key comparison (Delta 8 noted)
 
@@ -855,13 +860,31 @@ this strength:
   when no route exists — is the separate fuel obligation, §10.4, still
   open.)
 
-### 10.4 Fuel sufficiency
+### 10.4 Fuel sufficiency (proved, kernel-checked: `routeSearch_complete`)
 
-§8.4's accounting: with the closed list, total pops are bounded by
-`|plan|² + |plan| + 1`, and the executable fuel `(|plan|+1)² + 1` dominates
-that. The T2-line obligation is the formal lemma that fuel never expires
-before frontier exhaustion — so a `none` return is a decision ("no route"),
-never a budget accident. This is the completeness half of T2b's proof.
+§8.4's accounting, realized as a potential function rather than a pop
+count. `loopMeasure` assigns a state
+`|frontier| + |open plan contacts| · (|plan|+1) + |rootlike frontier
+members| · (|plan|+1)` (open = not on the closed list; rootlike = empty
+hop list). A drop costs 1; a root expansion retires the root and a close
+retires an open plan contact, each paying `|plan|+1` against at most
+`|plan|` inserted candidates, so both cost at least 2. The initial state —
+one root candidate, nothing closed — measures exactly
+`(|plan|+1)² + 1`, the executable's fuel, so fuel outlasts the loop
+(`searchLoop_progress`).
+
+The other half is that the frontier cannot empty while a valid route
+exists: the §10.3 first-open-boundary argument, with the pickMin step
+removed, hands back a frontier member outright (`boundary_witness` — the
+witness used by `frontier_bound` and by progress alike). A returned
+candidate also passes the certifying check — the return guard supplies
+endpoints and nonemptiness, `CandInv` supplies chain, plan membership,
+and the cached arrival — so completeness composes through `routeSearch`:
+on a `PlanNonnegOwlt` plan, if any valid route exists, `routeSearch`
+answers `some` (`routeSearch_complete`), and `none` is exactly "no valid
+route exists" (`routeSearch_none_iff`). With T1 (soundness), T2a
+(selection), and T2b (optimality), the search is a verified decision
+procedure for earliest-arrival routing on nonneg-OWLT plans.
 
 ---
 
