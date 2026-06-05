@@ -11,34 +11,46 @@ We set out to certify the reliability of SABR route selection (CCSDS
 independent-oracle conformance audit, and differential measurement
 against deployed ION 4.1.4. The certification question dissolved under
 the instrument, and what replaced it is a closure claim about the
-standard itself: we enumerate the complete set of places where two
-conformant SABR implementations can differ in behavior, and there are
-four, all in the text - the population of the candidate-routes list
-(mandated complete in one clause, permitted singleton in another), the
+standard itself: within the audited frame - same contact plan and
+dispatch stream presented to both implementations, custody-free,
+single-priority traffic - we enumerate the places where two conformant
+SABR implementations can differ in behavior, and there are five, all
+in the text. Four sit in the selection semantics - the population of
+the candidate-routes list
+(described as complete in one clause, permitted singleton in another), the
 OWLT margin value (normative arithmetic, operator-chosen value, moving
 delivered arrival on 12.3% of a real Deep Space Network corpus), the
 route class (pinned three incompatible ways), and the contact graph's
 declared acyclicity (false under its own construction rule on any
-bidirectional plan). Everything else is pinned: selection is
+bidirectional plan). The fifth sits in what selection stores:
+selection is
 action-deterministic at every tie the text cannot break (a full
-four-key tie forces the same forwarding action), and the one remaining
-channel from stored-state divergence to behavior - volume bookkeeping
-against the stored route object - is real in principle and inert on
-physical traffic. We construct a witness in which two conformant
+four-key tie forces the same forwarding action), but §3.2.8.1.2
+charges volume against a route object the text resolves only as
+"arbitrarily" at those ties, and that channel's firing is a property
+of traffic shape. We construct a witness in which two conformant
 systems disagree on whether a bundle is deliverable at all, then show
 in a two-ledger replay rigged in amplification's favor (contention to
 eight times the tightest pass volume, charges that never decay) that
-the divergence never fires on naturally shaped traffic, for a
+the divergence never fires under endpoint-sourced traffic, for a
 structural reason: the route multiplicity that creates divergent state
 is the same multiplicity that supplies the tuple-equivalent fallbacks
-absorbing it. Along the way we show that which of the standard's four
+absorbing it. The absorption is source-relative, and that is its
+limit: widen the source set to relay nodes - the natural shape for
+mesh deployments, and the witness's own geometry - and the channel
+fires on 36 of 1000 cislunar plans at contention 2.0 and 82 at 8.0
+(depth-4-adjudicated), every divergence an entry split in which the
+two conformant systems
+enqueue the same bundle to different neighbors. Along the way we show that which of the standard's four
 selection keys does the deciding is a property of the contact plan's
 route multiplicity - the "tiebreak" tail decides 75% of dispatches on
 a quantized cislunar mesh and 1-4% everywhere else, flat across three
 orders of magnitude of light time - a regime dependence the standard
-never indexes. Fix the four deferred points and two faithful
-implementations of this standard are behaviorally identical on
-physical traffic, in selection and delivery, from cislunar to
+never indexes. Fix the four deferred points and pin the route object
+stored at full-tuple ties, and two faithful
+implementations of this standard are behaviorally identical on every
+corpus, traffic shape, and contention level measured, in selection
+and delivery, from cislunar to
 interplanetary range. The reliability risk was never in the
 implementations; it is exactly where the text stops speaking.
 
@@ -65,29 +77,45 @@ durable findings are about the text and about how its effective
 behavior changes across operating regimes, not about whether any
 particular implementation has a bug.
 
-The thesis is a closure claim. The four deferred points of §4 are not
-four caveats on a reliability finding; on the evidence of §5-§7 they
+The thesis is a closure claim. The four deferred points of §4, plus
+the tie-storage channel of §7 they leave behind, are not caveats on a
+reliability finding; on the evidence of §5-§7 they
 are the complete set of behavioral degrees of freedom the standard
-leaves open. The witness of §7 is the necessity half of that claim -
+leaves open within the audited frame: the same plan and dispatch
+stream presented to both implementations, custody-free, single
+priority, no fragmentation - the frame §8 delimits. Operational
+choices upstream of the standard (which contacts a schedule carries,
+what horizon it is cut at) vary the input, not the implementation,
+and sit outside any conformance claim; deferrals the corpora cannot
+exercise (the §2.4.4 probe option under custody, arithmetic tolerance)
+are flagged in §8, not closed here. The witness of §7 is the
+necessity half of that claim -
 it exhibits the one further channel the text permits, divergence
-through volume state, as real - and the field measurement is the
-inertness half: on physical traffic the channel never fires, for a
-mechanism-level reason. Fix the four and two conformant
-implementations are behaviorally identical on natural traffic, in
+through volume state, as real - and the field measurement is
+two-sided: under endpoint-sourced traffic the channel never fires,
+for a mechanism-level reason, and under relay-sourced traffic it
+fires at a measured rate, which makes the inertness a traffic regime
+rather than a property of the channel. Fix the four, pin the stored
+tie representative, and two conformant
+implementations are behaviorally identical across the measured
+corpora, traffic shapes, and contention levels, in
 selection and in delivery, across the measured OWLT range.
 
 Concretely, this paper establishes:
 
 - **A four-member class of deferred or contradictory degrees of
-  freedom in the text, argued complete** (§4, §5, §7): the
-  candidate-list population is mandated complete in one clause and
+  freedom in the selection semantics, argued complete for the audited
+  frame jointly with the §7 storage channel** (§4,
+  §5, §7): the
+  candidate-list population is described as complete in one clause and
   permitted singleton in another; the OWLT margin is part of the
   normative arrival computation with its value left to operations; the
   route class is pinned three incompatible ways; and the contact graph
   is declared acyclic while its construction rule produces 2-cycles on
   every bidirectional plan. Conformance verdicts below the first key
   are undefined until a reader resolves all four - and no measured
-  disagreement traces to anything outside them.
+  disagreement traces to anything outside them and the storage
+  channel.
 - **A localization result** (§5): run two independently developed,
   faithful implementations across regimes and their disagreement
   concentrates exactly on that class. The differential is an
@@ -112,13 +140,20 @@ Concretely, this paper establishes:
   text cannot break.
 - **The volume layer's two-sided answer** (§7): action-determinism
   leaves exactly one path from stored-route divergence to behavioral
-  divergence - MTV decrements under §3.2.8.1.2. The witness shows the
-  path is real: two conformant systems disagree on deliverability. The
-  replay, with every knob set in amplification's favor, shows it is
-  inert on natural traffic, and both enumeration-cap exposures are
-  closed structurally rather than by sampling. Permitted but inert,
-  with the mechanism for the inertness - the pair, not either half, is
-  the result.
+  divergence - MTV decrements under §3.2.8.1.2 against a route object
+  that is the text's own "arbitrarily" at full-tuple ties. The witness
+  shows the path is real: two conformant systems disagree on
+  deliverability. The
+  replay, with every knob set in amplification's favor, shows the
+  channel inert under endpoint-sourced traffic - the absorbing
+  mechanism named, both enumeration-cap exposures
+  closed structurally rather than by sampling - and live under
+  relay-sourced traffic, firing on 36 to 82 of 1000 plans as
+  contention runs 2.0 to 8.0 (depth-4-adjudicated), every divergence
+  an entry split.
+  Permitted, with traffic-shape-indexed firing and a one-line fix
+  (pin the stored representative): the pair of measurements, not
+  either one, is the result.
 
 The methods that make these claims auditable are themselves a
 contribution (§2-3): a kernel-checked reference whose theorems are
@@ -303,11 +338,11 @@ the key-3 column across the last two rows while key-4 collapsed
 
 ## 4. The standard's deferred degrees of freedom
 
-SABR's text is total and precise about its comparison and silent or
-self-contradictory about the objects the comparison ranges over. Four
-instances, one species.
+SABR's text is total and precise about its comparison and silent,
+ambiguous, or self-contradictory about the objects the comparison
+ranges over. Four instances, one species.
 
-### 4.1 The candidate list is mandated complete and permitted singleton
+### 4.1 The candidate list is described as complete and permitted singleton
 
 §3.2.5.1 b): the candidate routes list "shall contain one entry for
 each candidate route ..., that is, for each route that could result in
@@ -316,7 +351,24 @@ list contains no candidate routes," the next best route shall be
 computed and added - and "identification of the conditions under which
 the computing of additional routes must cease is an implementation
 matter," with §3.2.6.10 fixing the generation order (next-best by
-arrival, Yen's algorithm suggested). An implementation that stops at
+arrival, Yen's algorithm suggested).
+
+Which clause governs turns on one apposition. §2.3.2.2 defines the
+route list as the routes that "have been computed" and are not
+terminated, and §3.2.6.9 h) deems candidate routes from that list's
+filtered members - the procedural definition is computation-scoped,
+and the only completeness hook in the text is §3.2.5.1 b)'s gloss
+"that is, for each route that could result in arrival of the bundle at
+node D." Read unrestricted and normative, the gloss conflicts with the
+cessation license; read as description, it is false of every
+cessation-conforming implementation; read as scoped to the computed
+list, it mandates nothing and the four-key order is vacuous by
+permission. No reading makes the gloss accurate and the license
+innocuous at once, and nothing in the text arbitrates. The finding
+does not need the arbitration: conformance below key 1 flips with the
+choice of reading, and the flip is measured.
+
+An implementation that stops at
 the first candidate satisfies the second clause literally and presents
 the four-key selection with a singleton list, making keys 2-4 vacuous.
 ION 4.1.4 is that implementation: in the unloaded regime its
@@ -328,6 +380,19 @@ under the cessation reading it is zero. The reference's deviations,
 by contrast, survive every reading, including the weakest (graded
 against its own enumerated frontier, it returns a dominated route on
 1890/4093 dispatches under the recording comparator).
+
+Resolving the clause pair alone does not pin behavior; the freedom has
+an interior. Under the completeness reading, the visited-contact
+pruning that deployed practice applies (this reference and ION alike)
+is itself a deviation with a measured price - 210 key-3 and 1 key-4
+dispatches of 4093 on the current binary (§A.2). Under the cessation
+reading, §3.2.6.10 fixes generation order by arrival cost only, so
+which equal-arrival route becomes the singleton - entry node included,
+hence the forwarding action - is tie behavior the text never
+mentions; ION's contact-index order is one arbitrary choice among
+many. Resolving this degree of freedom means pinning the list
+contents, not picking a clause, and the completeness reading is the
+only resolution that pins them canonically.
 
 ### 4.2 The OWLT margin is normative text with an operator value
 
@@ -388,9 +453,12 @@ implementations disagree wherever the unpinned candidate list decides
 (the complementary profiles of §3); on real deep-space plans the
 profiles converge and the remaining behavioral freedom is the margin
 axis (12.3% of arrivals) plus nothing. We found no disagreement, in
-288,000 volume-replay evaluations and 18,000 audited dispatches, that
+7.5 million volume-replay evaluations and 18,000 audited dispatches,
+that
 traces to anything other than a deferred degree of freedom or a
-since-fixed implementation defect with a named mechanism.
+since-fixed implementation defect with a named mechanism - the relay
+entry splits of §7 included, since they trace to the "arbitrarily"
+the text itself writes.
 
 That is a property worth stating as a method: a differential
 conformance engine - two or more faithful implementations, mechanism
@@ -448,7 +516,9 @@ routes at the full optimal tuple. Both realized witnesses share one
 anatomy: same entry contact, two parallel interior relays, arrival
 equalized by waiting, and the route-minimum end time achieved on a
 SHARED element (the common first contact in one; the day-horizon clip
-in the other), so the differing segment is strictly termination-slack.
+in the other - a property of the plan, whose every contact ends at the
+generator's horizon, so both implementations see identical end times),
+so the differing segment is strictly termination-slack.
 That is the general shape of what the order cannot see: it observes a
 route only through (arrival, length, min-end, first hop).
 
@@ -464,9 +534,11 @@ volume layer's question.
 
 Action-determinism leaves exactly one path from representational
 divergence to behavioral divergence. Queue backlog cannot carry it
-(identical actions produce identical queues), and the four keys never
-read MTV; the ledger reaches selection only through the §3.2.6.9 f)/g)
-volume filters. The question is binary: does MTV evolution amplify the
+(identical actions produce identical queues), the excluded-nodes list
+cannot (§3.2.5.2 populates it from action history - prior hop and
+refusal events - never from the stored route object), and the four
+keys never read MTV; the ledger reaches selection only through the
+§3.2.6.9 f)/g) volume filters. The question is binary: does MTV evolution amplify the
 residue into different selections - different entry, or found against
 none - for some later bundle, or does action-determinism wash it out?
 
@@ -493,7 +565,7 @@ overhead. Under those conditions, on corpus_v3 at contention 2.0:
 is identical end to end. On dsn_real_v1: zero residue events at all -
 no ties, nothing to store divergently, the channel closed upstream by
 the regime. The divergence the standard permits did not occur on
-naturally shaped traffic under stress exceeding any realistic
+endpoint-sourced traffic under stress exceeding any realistic
 deployment, and the reason is structural, not statistical: the
 multiplicity that creates residue is the same multiplicity that
 supplies tuple-equivalent fallbacks to absorb it, and endpoint
@@ -519,18 +591,48 @@ dispatches sit above the unconstrained optimum. Entry divergence from
 beyond the cap is impossible on this data, not merely unobserved.
 This is the same cap-killing move used throughout the program (§2.5).
 
-**Verdict on the founding question, as a closure claim.** Same
-actions at every tie the text cannot break; same deliverability
-through the volume layer, both regimes, under stress beyond any
-realistic deployment, with both cap exposures closed structurally.
-The volume channel is the candidate fifth degree of freedom and it is
-permitted-but-inert: the witness proves the permission, the replay
-and the absorption mechanism prove the inertness on physical inputs.
-What remains is exactly the four deferred points of §4. Fix those and
-two conformant implementations of this standard are behaviorally
-identical on natural traffic, in selection and in delivery, across
-the measured OWLT range. The residual reliability risk is textual,
-not algorithmic.
+**The absorption is source-relative, and relay-sourced traffic
+realizes the witness in the field.** Washout counts fallbacks from
+the diverging bundle's source: the multiplicity argument holds at the
+endpoints whose ties created the residue, and says nothing about a
+bundle originated on a charged leg - which is not an adversarial
+shape; relay nodes source their own telemetry in any mesh deployment.
+Widening the replay's source set to every node (same destinations,
+same staggered schedule, same two-ledger discipline; 1728 dispatches
+per plan against the endpoint runs' 144) fires the channel on
+corpus_v3: at contention 2.0, 845 of 1000 plans carry residue events
+and 40 diverge at the depth-3 cap; at contention 8.0, 842 carry
+residue and 82 diverge.
+Every divergence is an entry split - the two conformant ledgers
+enqueue the same bundle to different neighbors; found-against-none
+never occurs at either contention - and the diverging dispatches
+source across the whole node set, because once leg-sourced charges
+open a gap, any later dispatch can land in it. Depth-4 adjudication
+of every diverged plan, by the endpoint runs' own protocol, confirms
+the splits are not cap artifacts: all 82 stress-contention
+divergences persist, and 36 of the 40 at contention 2.0 persist with
+4 dissolving under the deeper cap. The cap-robust rates are 3.6% and
+8.2% of plans.
+
+**Verdict on the founding question, as a closure claim.** The volume
+channel is the fifth deferred point, and it is textual like the
+others: §3.2.8.1.4 a) 4) resolves full-tuple ties "arbitrarily,"
+§3.2.8.1.2 charges the arbitrarily-stored object, and the pair is a
+conformant divergence channel whose firing is regime-indexed by
+traffic shape and contention - zero firings under endpoint-sourced
+traffic at any measured contention, by an absorption mechanism that
+is source-relative; 36 to 82 of 1000 plans under relay-sourced
+traffic as contention runs 2.0 to 8.0, depth-4-adjudicated entry
+splits all. The fix
+costs what the other four cost: pin the stored representative at
+full-tuple ties (any canonical choice serves; the two ledgers here
+bracket the conformant extremes). Fix the four of §4 and pin the
+tie, and two conformant implementations of this standard are
+behaviorally identical on every corpus, traffic shape, and
+contention level measured, in selection and in delivery. Leave the
+tie arbitrary, as the text does, and relay-sourced traffic under
+load realizes the divergence the witness constructs. The residual
+reliability risk is textual, not algorithmic.
 
 ## 8. Limitations
 
@@ -539,12 +641,13 @@ points in a plan-structure space, and the dense-topology large-OWLT
 cell is unmeasured (its prediction is registered, §6.1). The ION leg
 on the real-DSN corpus awaits margin-frame grading; ION's profile
 there is a frozen mirror prediction. Multi-priority charging and
-fragmentation are unexplored. Adversarial traffic is out of scope by
-design: witness-shaped traffic amplifies by construction, so the
-adversarial question is an attack-cost question - how much control
-over traffic shape buys a deliverability split between conformant
-implementations - and belongs to a security framing of SABR, not to a
-reliability characterization; we flag it as separate work. The
+fragmentation are unexplored. Adversarial traffic proper - sizing and
+timing aimed at forcing a split at a chosen dispatch - remains out of
+scope, and the relay measurement sharpens what it leaves open:
+traffic shape alone fires the channel without adversarial sizing, so
+the attack-cost question is how cheaply a traffic source can aim it;
+that belongs to a security framing of SABR, not to a
+reliability characterization, and we flag it as separate work. The
 reference's §3.2.6.9 c) filter is enforced by measurement (zero
 route-level violations) rather than implemented in the search;
 implementing it re-scopes the kernel theorems to the filtered class
@@ -555,13 +658,32 @@ failures; "reliability" here means determinism and deliverability of
 selection under the standard's own semantics, not end-to-end network
 resilience.
 
+Custody, when present, carries a further textual deferral this audit
+never exercises: §2.4.4 makes probe forwarding to an excluded neighbor
+optional ("a custodial bundle ... may be forwarded") and rate-limits
+it only as "occasionally," while §3.2.5.2 b) keys the exclusion filter
+on whether the bundle "would serve as a probe bundle" - so two
+conformant implementations facing identical refusal histories can
+build different excluded lists for the same dispatch and forward
+differently. On custody-bearing traffic that is a deferred point in
+the selection path itself, of the same species as the four; on these
+corpora it cannot fire, which is why it is flagged here and not
+counted there. Arithmetic representation is outside the measured space
+in the other direction: both implementations compute exactly on these
+plans (the reference in rationals, ION in integer seconds on
+integer-second inputs), the standard specifies real-valued arithmetic
+with no tolerance, and key 4 presumes numeric node identifiers that
+ipn endpoints have and dtn-scheme endpoints lack. Sub-second-light-time
+regimes or floating-point implementations would make rounding at key 1
+a conformance question the text does not answer.
+
 ## 9. Why the closure claim should be believed
 
 A reader of a result this null-shaped - "the implementations were
 never the risk" - is owed an account of why the conclusion is not a
 story fitted to the data. The account is that the program tried,
 repeatedly and by design, to break its own claims, and the record of
-those attempts is the evidence. Five times the object under
+those attempts is the evidence. Six times the object under
 measurement dissolved when a control built against our own hypothesis
 fired: the reference could not certify itself from inside its own
 frame (caught by the strict-superset oracle requirement); a
@@ -571,9 +693,12 @@ produced the data - once against our own account and once against an
 external reviewer's; the tiebreak layer's apparent dominance
 dissolved when a control cell sharing the light-time regime but not
 the topology showed none of it; the planned OWLT transition curve
-falsified its own axis; and the volume layer's single field
-divergence died under adjudication, with the closure then made
-structural rather than empirical. Each catch came from a
+falsified its own axis; the volume layer's single endpoint-run
+divergence died under adjudication, with that closure then made
+structural rather than empirical; and the prior draft's volume
+verdict - permitted-but-inert - fell to a one-flag traffic-shape
+experiment built in response to an external review, the absorption
+mechanism having been source-relative all along (§7). Each catch came from a
 pre-registered prediction, a deliberately stronger oracle frame, or a
 provenance check - instruments built to surface exactly the failure
 they surfaced.
@@ -582,7 +707,12 @@ What survived that process is the claim of this paper. The program
 set out to find reliability risk in implementations, built
 instruments designed to surface it, and those instruments instead
 localized all variation to four places in the standard's text - a
-conclusion we repeatedly tried and failed to break. For CCSDS
+conclusion we repeatedly tried and failed to break. The trying was
+aimed where the instruments could reach: key-1 refutation, binary
+provenance, the OWLT axis, the volume ledger, traffic shape. Channels
+the corpora exclude by construction - custody and the probe option,
+priorities, fragmentation, arithmetic tolerance - were scoped out, not
+survived, and §8 marks that boundary explicitly. For CCSDS
 734.3-B-1 the surviving characterization is: a selection order that
 is total and precise; action-deterministic at every tie it cannot
 break; settled through the volume layer on physical traffic under

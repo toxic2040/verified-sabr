@@ -16,12 +16,14 @@ wins in 2497 of 4093 dispatches at equal hop count, in complementary and
 now mechanism-predicted ways, while both implement CCSDS 734.3-B-1
 §3.2.8.1.4 a)'s comparison faithfully or near-faithfully. Neither
 implementation is wrong about the order. They differ about the *list*
-the order ranges over, and the standard pins that list twice,
-incompatibly:
+the order ranges over, and the standard speaks to that list twice,
+divergently:
 
 - §3.2.5.1 b): the candidate routes list "shall contain one entry for
   each candidate route ..., that is, for each route that could result in
-  arrival of the bundle at node D." A completeness clause.
+  arrival of the bundle at node D." Read unrestricted, a completeness
+  clause; read as scoped to §2.3.2.2's route list ("routes ... that have
+  been computed"), a gloss with no population force.
 - §3.2.6.9.1: "As long as the route list contains no candidate routes,"
   the next best route shall be computed and added - and "identification
   of the conditions under which the computing of additional routes must
@@ -41,14 +43,15 @@ reader chooses a clause.
 
 ## The pattern: deferred and contradictory degrees of freedom
 
-The candidate-list contradiction is not an isolated drafting accident.
+The candidate-list divergence is not an isolated drafting accident.
 SABR's text repeatedly either contradicts itself or defers a
 load-bearing value to an unstated operator choice, and the audit's
 verdicts are conditional on all of these simultaneously:
 
-1. **Candidate-list population**: §3.2.5.1 b) mandates completeness;
-   §3.2.6.9.1 licenses ceasing computation at one candidate, with the
-   cessation condition "an implementation matter." (Above.)
+1. **Candidate-list population**: §3.2.5.1 b) read unrestricted
+   mandates completeness; §3.2.6.9.1 licenses ceasing computation at
+   one candidate, with the cessation condition "an implementation
+   matter." No reading makes both clauses do work at once. (Above.)
 2. **The contact graph is declared acyclic and is not**: §3.2.1 calls
    it "a conceptual directed acyclic graph," but its edge rule d) is
    purely topological - an edge wherever one contact's receiving node
@@ -198,8 +201,10 @@ supports:
 So the deviation verdicts are not artifacts of a candidate-list choice:
 lean's deviations persist under every reading including its own list;
 ION's deviations exist exactly insofar as §3.2.5.1 b) outranks
-§3.2.6.9.1. The clause-level contradiction is the finding, and the
-512/1054/1-to-zero swing is its measured size.
+§3.2.6.9.1. The clause-level divergence is the finding - whichever
+clause a reader lets govern, the other one's behavior becomes
+nonconformant or vacuous - and the 512/1054/1-to-zero swing is its
+measured size.
 
 ## Closing the thread ambiguities
 
@@ -550,9 +555,34 @@ also supplies the equivalent fallbacks that absorb it; the witness
 geometry - a leg-sourced bundle aimed into the gap - is exactly what
 endpoint traffic does not produce.
 
+Relay-sourced traffic fires it (addendum, same day). The washout
+mechanism counts fallbacks from the bundle's source, so it is
+source-relative by construction, and the witness's leg-sourced bundle
+is not an adversarial shape - relay nodes originate their own
+telemetry in any mesh deployment. Widening the replay's source set to
+every node (`evl.py --traffic relay`: same destinations, same
+staggered schedule, 1728 dispatches per plan instead of 144, same
+two-ledger discipline) realizes the divergence in the field: at
+contention 8.0, 842 of 1000 plans carry residue events (2109 total)
+and 82 diverge behaviorally; at contention 2.0, 845 carry residue
+(2191) and 40 diverge. Every divergence is an entry split - the two
+conformant ledgers enqueue the same bundle to different neighbors -
+and the diverging dispatches source across the whole node set: once
+leg-sourced charges open a gap, any later dispatch can land in it.
+Depth-4 adjudication of the diverged plans (evl_adjudicate.py,
+results alongside) confirms cap-robustness: 82 of 82 persist at
+contention 8.0, 36 of 40 at 2.0 (4 dissolve under the deeper cap);
+`pbat_gap_dispatches` is 0 across both legs. The volume channel is not permitted-but-inert; it
+is permitted with traffic-shape-indexed firing - inert under
+endpoint-sourced traffic by the absorption mechanism, live under
+relay-sourced traffic at measured rates. Artifacts in
+`out_evl_relay/`.
+
 Scope carried, not hidden: single priority, no fragmentation,
-staggered endpoint traffic (adversarial traffic aimed at the witness
-geometry amplifies by construction - that is what the selftest is).
+staggered traffic (endpoint legs measure the absorption regime; relay
+legs the firing regime; adversarial traffic aimed at a chosen victim
+dispatch remains a third, unmeasured shape - that is what the
+selftest's sizing is).
 Both enumeration-cap exposures are closed structurally rather than by
 sampling: found/none by depth-monotonicity of found verdicts, and
 entry divergence by the depth-free key-1 oracle - on uniform-rate
@@ -562,12 +592,17 @@ key 2 at equal PBAT; measured across all 26 adjudicated plans, zero
 dispatches sit above that optimum (`pbat_gap_dispatches`).
 
 The verdict on the program's founding question: reliability at the
-routing layer is SETTLED - same actions, same deliverability, in both
-regimes, through the volume layer, under contention to eight times the
-bottleneck - modulo the standard's four deferred degrees of freedom,
-and with one permanently honest asterisk: the text PERMITS conformant
-implementations to diverge on deliverability (the witness), it just
-takes traffic shaped like the witness to realize it.
+routing layer is settled for endpoint-sourced traffic - same actions,
+same deliverability, in both regimes, through the volume layer, under
+contention to eight times the bottleneck - modulo the standard's four
+deferred degrees of freedom. For relay-sourced traffic the former
+asterisk is a measured row: the §3.2.8.1.4 a) 4) "arbitrarily" plus
+the §3.2.8.1.2 charge against the arbitrarily-stored object is a
+fifth deferred point, and it fires on 3.6-8.2% of plans under load
+(depth-4-adjudicated).
+Pin the stored representative at full-tuple ties (any canonical
+choice; the two ledgers bracket the extremes) and the channel closes
+with the other four.
 
 ## Artifacts
 

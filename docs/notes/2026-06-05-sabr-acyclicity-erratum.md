@@ -30,7 +30,37 @@ generated cislunar plan; any real schedule works identically):
 Contact (1->2) has receiving node 2 = sending node of (2->1), giving
 edge (1->2) -> (2->1); contact (2->1) has receiving node 1 = sending
 node of (1->2), giving the reverse edge. A 2-cycle, from the rule as
-written.
+written. (Rule c) admits both vertices whenever it admits one; the
+objection below works this out.)
+
+Anticipated objection: figure 3-4 omits the reverse contacts (vertices
+2, 4, 6, 8, 10 of the figure 3-2 plan), so a context-aware reader might
+take rule c) to exclude them and the graph to be acyclic as intended.
+Three replies, in increasing strength:
+
+- Rule c)'s relevance condition is recursive, and it admits the
+  reverse whenever it admits the forward. On the spec's own plan:
+  contact 2 (B->A) signifies transmission "indirectly to node D"
+  because its receiving node A is the sending node of contact 1, which
+  is itself indirectly-to-D via contact 3 (B->D); and contact 2 is
+  indirectly from X = A because its sending node B receives contact 1,
+  which is directly from A. Both conditions are discharged by the
+  forward contact itself, so this is general: a forward vertex forces
+  its reverse in. The figure contradicts the rule, not the erratum.
+- The figure is reached only from the §3.2.1 NOTE ("See figures 3-1,
+  3-2, 3-3, and 3-4 for an illustration"), and notes are informative
+  in CCSDS books; the normative construction is items a)-d). A figure
+  that drops vertices the rule admits is evidence the editors intended
+  something narrower than they wrote - which is what an erratum
+  reports.
+- The cycle survives every pruning the text could be read to imply.
+  Contact 2 lies on a §1.4-valid route from A to D - the sequence
+  (1, 2, 7, 9) chains A->B->A->B->D and each contact ends no earlier
+  than its predecessor begins - so even "keep only contacts on valid
+  routes to D" retains vertex 2, and with it edges (1)->(2) and
+  (2)->(1). Removing the 2-cycles takes a clause that deletes reverse
+  contacts or guards edges temporally, and no such clause exists;
+  supplying one is exactly the proposed fix.
 
 Why it matters beyond hygiene: §3.2.6.10 computes routes as "the
 shortest path from X to D" through this graph, with Yen's algorithm

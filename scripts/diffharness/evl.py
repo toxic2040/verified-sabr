@@ -46,11 +46,18 @@ conformant tie resolutions, bracketing every faithful implementation.
 Traffic per plan: the plan's query pairs, K bundles each, dispatch
 times staggered across the horizon, bundle size set so K bundles sum to
 CONTENTION times the tightest pass volume on the t0-feasible routes.
+--traffic relay widens the source set to every node (toward the same
+destinations): the witness's amplifying bundle is sourced on an interior
+leg, which endpoint pairs never produce, so the endpoint runs measure
+inertness only for endpoint-shaped traffic. Relay sourcing is the
+natural shape for mesh deployments (every spacecraft originates
+telemetry) and closes that scope gap in whichever direction the data
+falls.
 
 Usage:
   evl.py selftest
   evl.py run --corpus <root> --glob '<plan glob>' --out <results.jsonl>
-      [--bundles 24] [--contention 2.0]
+      [--bundles 24] [--contention 2.0] [--traffic endpoint|relay]
   evl.py analyze --results <results.jsonl> --out <report.json>
 """
 
@@ -139,7 +146,8 @@ def select(contacts, by_from, src, dst, t0, evc_b, mtv, depth_cap,
     return (b[0], b[1], -b[2], b[3]), min(tie), max(tie), truncated[0]
 
 
-def replay_plan(pdir, n_bundles, contention, depth_cap):
+def replay_plan(pdir, n_bundles, contention, depth_cap,
+                traffic="endpoint"):
     """Two-ledger replay over one plan. Returns the per-plan record."""
     raw = parse_ionrc(pdir / "contact_plan.ionrc")
     nm = json.load(open(pdir / "plan_manifest.json"))["node_map"]
@@ -168,6 +176,12 @@ def replay_plan(pdir, n_bundles, contention, depth_cap):
             # corpus_v3 schema: undirected pair lists, no query flag -
             # take a deterministic subset as traffic endpoints
             pairs = sorted({tuple(p["pair"]) for p in rows})[:6]
+    if traffic == "relay":
+        # every node originates toward the endpoint destinations: the
+        # superset of the endpoint schedule that includes leg-sourced
+        # bundles (the witness geometry, when one lands in a charge gap)
+        dsts = sorted({d for _, d in pairs})
+        pairs = sorted((n, d) for n in nm for d in dsts if n != d)
     horizon = max(c[3] for c in contacts)
 
     # dispatch schedule: K bundles per pair, staggered, interleaved
@@ -283,7 +297,8 @@ def cmd_run(args):
     with open(outp, "a") as sink, \
             ProcessPoolExecutor(max_workers=cpu_count()) as pool:
         futs = {pool.submit(replay_plan, p, args.bundles,
-                            args.contention, args.depth): p.name
+                            args.contention, args.depth,
+                            args.traffic): p.name
                 for p in plans}
         n = 0
         for fut in as_completed(futs):
@@ -397,6 +412,10 @@ def main():
     r.add_argument("--depth", type=int, default=3,
                    help="route enumeration cap; truncations are counted,"
                         " never silent")
+    r.add_argument("--traffic", choices=["endpoint", "relay"],
+                   default="endpoint",
+                   help="endpoint: the plan's query pairs only; relay:"
+                        " every node sources toward the same destinations")
     r.set_defaults(fn=cmd_run)
     a = sub.add_parser("analyze")
     a.add_argument("--results", required=True)
