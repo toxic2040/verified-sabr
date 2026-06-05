@@ -627,8 +627,13 @@ Three consequences are pinned:
   restricted route space. A disagreement therefore still indicates a model or
   oracle defect, not the pruning itself. That deployed CGR's visited set can in
   principle exclude loopless earliest-arrival routes appears unremarked in the
-  standard and the Tutorial; it is recorded here as a finding-grade observation
-  for the paper.
+  standard and the Tutorial. The T2 line settled the observation's final form:
+  arrival and existence are never hurt (§10.3–§10.4), and what survives is
+  identity-level — the §3.2.8.1.4 order holds globally at key 1 but only
+  explored-set-relatively at keys 2–4. The finding, a machine-checked witness
+  (a pruned arrival-tied route with fewer hops), and its reading for practice
+  are pinned in `docs/notes/2026-06-05-visited-list-finding.md`; the witness
+  guards live in SearchTests (`vPlan`).
 
 ### 8.4 Fuel under closing
 

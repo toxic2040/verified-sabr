@@ -120,4 +120,23 @@ def candRoot : Cand := { hops := [], arrival := 0 }
 #guard termLater none (some 10) == true   -- root outlasts any bounded term
 #guard entryLE none (some "B1") == true   -- root ordered first
 
+-- Visited-set identity finding: keys 2–4 are explored-set-relative.
+-- [algorithm.md §8.3; docs/notes/2026-06-05-visited-list-finding.md]
+-- s closes via the 3-hop prefix (arrival 3 beats 4), so [vQ1, vS] drops and
+-- the 3-hop A→E route is never enumerated; the t window forces an arrival
+-- tie at 6, leaving the returned route key-2-worse than a pruned valid one.
+-- T2a (frontier-relative) and T2b (arrival) hold; global key 2 fails.
+def vP1 : Contact := { source := "A", dest := "B", tStart := 0, tEnd := 100, owlt := 1 }
+def vP2 : Contact := { source := "B", dest := "C", tStart := 0, tEnd := 100, owlt := 1 }
+def vQ1 : Contact := { source := "A", dest := "C", tStart := 0, tEnd := 100, owlt := 3 }
+def vS : Contact := { source := "C", dest := "D", tStart := 0, tEnd := 100, owlt := 1 }
+def vT : Contact := { source := "D", dest := "E", tStart := 5, tEnd := 100, owlt := 1 }
+def vPlan : ContactPlan := [vP1, vP2, vQ1, vS, vT]
+
+#guard routeSearch vPlan "A" "E" 0 == some [vP1, vP2, vS, vT]
+#guard ((routeSearch vPlan "A" "E" 0).bind (arrivalTime 0)) == some 6
+#guard (routeSearch vPlan "A" "E" 0).map List.length == some 4
+#guard isValidRoute vPlan "A" "E" 0 [vQ1, vS, vT] == true
+#guard arrivalTime 0 [vQ1, vS, vT] == some 6
+
 end VerifiedSabr.Tests.Search
