@@ -966,6 +966,51 @@ the §7 hypothesis) gets the same treatment as `PlanNonnegOwlt`: a Prop,
 an executable checker, and a bridge lemma into the nonneg invariant the
 T2 results consume.
 
+### 11.1 Trajectory revisit and the T3b-extended search
+
+A **node revisit** along a forwarding trajectory is a custodian node that
+the bundle occupies more than once before delivery or halt. Detection runs
+the §11 step from the source and records the custodian-node sequence; the
+trajectory has a revisit iff that sequence has a repeat. Equivalently, and
+the form the search uses, a revisit appears the first time a step hands
+custody to a node already in the visited prefix. This is the forwarding-
+level object the §3.2.8.1 history-list NOTE is about: a transit back to an
+earlier forwarding point, distinct from the §8.3 *route-shape* identity
+finding (a single search returning a key-2-worse route). The route-shape
+finding is settled (`vPlan`); the forwarding-level question is T3b-extended.
+
+The **mechanical search** (T3b-extended, plan task 4) enumerates small plan
+families and runs the real `forward` per candidate, reporting revisits. The
+family is not generic random plans — the custody-shift obstruction (plan,
+"Hand-construction obstruction") says a revisit needs an engineered interior
+arrival **tie** whose key-3/key-4 (termination, entry-node) asymmetry
+disagrees with the one-hop count shift between consecutive custodians. So
+the family fixes a scaffold that forces such ties — two arms to a join node
+of differing hop count, arrival-tied through a gated final contact (the
+`vPlan` tie-forcer), with back edges present so a backward first hop is
+even expressible — and varies the obstruction's live parameters (owlt
+including the zero-range tie regime, window gate, termination times, numeric
+entry-node ids). Every reported revisit is by construction a fact about the
+Lean `forward`; no external mirror is trusted. The enumeration and its
+outcome are pinned in `VerifiedSabr/LoopSearch.lean` and guarded in
+`VerifiedSabr/Tests/LoopSearchTests.lean`; the outcome reading is in
+`docs/notes/2026-06-05-t3b-extended-search.md`.
+
+The search outcome (2026-06-05): **exhaustion**, no revisit over the
+targeted family. The structural reason, located by the search, sharpens
+the obstruction into the seed of the impossibility direction (plan task 5):
+custody is only ever handed to the first hop of a *complete* route to the
+destination that the predecessor's search already selected. Reaching a
+custodian whose forward options are exhausted (the only configuration in
+which its own search returns a backward first hop, which a single search
+*can* do — see the "forced" probe in the note) therefore cannot happen along
+a trajectory, because that same exhaustion removes the custodian from every
+complete route the predecessor could have selected, so the predecessor
+routes around it. The closing race changes *which* forward route survives a
+tie; it never promotes the arrival-dominated backward route, key 1 being
+global (T2b). Across the three enumerated families no engineered tie flipped
+a first hop backward.
+
 ## Baseline audit (internal)
 
 Comparison of §1–§3 above against the pre-Blue-Book baseline Lean code in
