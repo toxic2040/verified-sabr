@@ -172,9 +172,14 @@ theorem entryLE_total (a b : Option Node) :
       cases b with
       | none => exact Or.inr rfl
       | some t =>
-          rcases le_total s t with h | h
-          · exact Or.inl (by simp [entryLE, h])
-          · exact Or.inr (by simp [entryLE, h])
+          simp only [entryLE, Bool.or_eq_true, Bool.and_eq_true,
+            decide_eq_true_iff, beq_iff_eq]
+          rcases Nat.lt_trichotomy s.length t.length with h | h | h
+          · exact Or.inl (Or.inl h)
+          · rcases le_total s t with hle | hle
+            · exact Or.inl (Or.inr ⟨h, hle⟩)
+            · exact Or.inr (Or.inr ⟨h.symm, hle⟩)
+          · exact Or.inr (Or.inl h)
 
 /-- Key-4 comparison is transitive. [algorithm.md §10.1] -/
 theorem entryLE_trans {a b c : Option Node} :
@@ -189,8 +194,15 @@ theorem entryLE_trans {a b c : Option Node} :
           cases c with
           | none => simp [entryLE] at h₂
           | some u =>
-              simp only [entryLE, decide_eq_true_iff] at h₁ h₂ ⊢
-              exact h₁.trans h₂
+              simp only [entryLE, Bool.or_eq_true, Bool.and_eq_true,
+                decide_eq_true_iff, beq_iff_eq] at h₁ h₂ ⊢
+              rcases h₁ with h₁ | ⟨e₁, l₁⟩
+              · rcases h₂ with h₂ | ⟨e₂, l₂⟩
+                · exact Or.inl (Nat.lt_trans h₁ h₂)
+                · exact Or.inl (e₂ ▸ h₁)
+              · rcases h₂ with h₂ | ⟨e₂, l₂⟩
+                · exact Or.inl (e₁.symm ▸ h₂)
+                · exact Or.inr ⟨e₁.trans e₂, le_trans l₁ l₂⟩
 
 /-- The 4-key comparison is reflexive: a full tie resolves left.
     [algorithm.md §10.1] -/
