@@ -39,6 +39,42 @@ recording binary survives every reading, including the one most
 favorable to it. Below key 1, SABR conformance is undefined until the
 reader chooses a clause.
 
+## The pattern: deferred and contradictory degrees of freedom
+
+The candidate-list contradiction is not an isolated drafting accident.
+SABR's text repeatedly either contradicts itself or defers a
+load-bearing value to an unstated operator choice, and the audit's
+verdicts are conditional on all of these simultaneously:
+
+1. **Candidate-list population**: §3.2.5.1 b) mandates completeness;
+   §3.2.6.9.1 licenses ceasing computation at one candidate, with the
+   cessation condition "an implementation matter." (Above.)
+2. **The contact graph is declared acyclic and is not**: §3.2.1 calls
+   it "a conceptual directed acyclic graph," but its edge rule d) is
+   purely topological - an edge wherever one contact's receiving node
+   is another's sending node, with no temporal guard - so every
+   bidirectional contact pair forms a 2-cycle. The declaration is false
+   on every plan in both corpora and on any network with two-way links.
+   This is a flat internal contradiction, demonstrable from the text
+   and any real contact plan, depending on no implementation.
+3. **The route class is pinned three ways**: §1.4 (sequences, reuse
+   permitted), §3.2.1 (the false acyclicity), §3.2.6.10 (generation by
+   loopless paths). Detail in its own section below.
+4. **The OWLT margin is spec text with an operator-defined value**:
+   §3.2.6.5 adds "the applicable OWLT margin" to every arrival
+   computation and never fixes it. ION computes it from a MAX_SPEED
+   constant; a margin-0 deployment is equally conformant. Measured
+   footprint on the DSN-real corpus: the margin VALUE alone moves the
+   delivered arrival on 851 of 6935 dispatches (12.3%) relative to a
+   margin-0 deployment (mirror-predicted, registered for the ION leg).
+   Conformance below key 1 - and at key 1 itself, through arrival -
+   is undefined until an ops authority pins a number the standard
+   declines to fix.
+
+One species, four instances: the standard is total and precise about
+the comparison and silent or self-contradictory about the objects the
+comparison ranges over.
+
 ## Mechanism accounts (both mirrors route-exact, 4093/4093)
 
 `predict.py` reimplements each construction from source and predicts
@@ -334,6 +370,56 @@ transfers are the genuinely open question, which the route-class fiat
 neither creates nor settles. The §3.2.8.1 history-list NOTE concedes
 loops at exactly that layer.
 
+## The distribution swap (S5 stage A, DSN-real corpus)
+
+Every rate above is conditioned on corpus_v3 - the cislunar generator's
+plan distribution. dsn_real_v1 (dsn-scraper, build_contact_corpus.py)
+re-derives the distribution-sensitive quantities on 55 day-plans built
+from two months of archived DSN Now tracking data: real pass windows
+under the archive's snapshot-persistence rule, real station
+multiplicity (MSPA, handovers, three complexes), measured light times
+(median rtlt/2 per interval, range/c fallback; OWLT 1 s to 84,725 s),
+spacecraft <-> antenna <-> NOC topology with an owlt-0 terrestrial
+backbone, 8912 dispatches. Results, same binary, same oracles:
+
+- Two-sided key 1: **0 disagreements** on 6935 found and 1977 none
+  dispatches. T2b and completeness hold outside the generator's world.
+- The current binary is **conformant on 6935/6935** graded dispatches.
+- The discrimination ladder inverts: keys 1-2 pin route identity on
+  **96.3%** (corpus_v3: 24.6%), key 3 decides 0.6% (was 65.0%), key 4
+  3.1% (was 10.3%), latent full-tuple indifference **0** (was 5).
+- The lean le4 mirror is route-exact 6935/6935 - fifth distribution.
+
+Verdict on the stakes question: **key 3's dominance was a regime
+signature, not a property of SABR routing in general.** corpus_v3's
+integer-quantized cislunar light times ({0,1} s on a 1.3-light-second
+system) manufacture arrival ties, and everything below key 1 lives on
+arrival ties; measured deep-space owlts make arrival decisive almost
+everywhere. Neither world is wrong - integer-second quantization is
+what an ionrc carries for cislunar plans, so the 65% is real for
+LunaNet-class deployments - but every rate in this program is now
+REGIME-INDEXED: cislunar-quantized and deep-space-real are different
+worlds, and the tiebreak layer only does work in the first.
+
+Registered for the ION leg (mirror-predicted, frozen before any ION
+run; the instrument still refuses the 556 margin-binding range entries
+until the margin frame is modeled): ION key-2 excess **0** (the
+stale-hopCount mechanism bites only at arrival ties), key-3 28,
+conformant 6056, and the 851 margin-moved arrivals above - the
+complementary profiles CONVERGE on real deep-space plans, so the
+differential engine's disagreement signal localizes to the
+cislunar-quantized regime plus the margin axis.
+
+Where this moves the frontier: route selection is now settled on both
+distributions - mechanism-explained deviations in the regime that has
+them, clean conformance in the regime that does not, and
+action-determinism at every latent tie in both. The divergence that
+remains live is in what implementations REMEMBER, not what they choose:
+§3.2.8.1.2 volume bookkeeping, where the irreducible-residue analysis
+already showed route-object identity becomes diverging MTV state. The
+EVL/volume layer is the open frontier; route-selection hardening is the
+settled part.
+
 ## Artifacts
 
 - `scripts/diffharness/predict.py` - both mirrors, predict/score phases,
@@ -342,6 +428,9 @@ loops at exactly that layer.
   bounds, per-dispatch dump, prediction cross-check.
 - `scripts/diffharness/le4field.py` - 4-key binary field run and the
   version-differential scoring.
+- `scripts/diffharness/s5field.py` - the distribution-swap leg over the
+  DSN-real corpus; corpus builder in dsn-scraper
+  (`code/build_contact_corpus.py`), output `out_s5/`.
 - `out_diff_v3/predictions.jsonl`, `predictions_ownlist.jsonl`,
   `predictions_le4.jsonl` (route predictions, frozen before scoring),
   `prediction_score.json` (4093/4093 both sides), `grades.jsonl`
