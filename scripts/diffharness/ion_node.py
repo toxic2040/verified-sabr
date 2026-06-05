@@ -17,12 +17,37 @@ plan-relative time.
 
 The node boots as one of the contact plan's own node numbers (cgrfetch
 computes routes from the LOCAL node).
+
+Corpus validation (the `validate` subcommand) drives live ION over the
+dsn_real_v1 corpus, whose plans carry up to 47 nodes and up to ~140
+contacts across many distinct query sources. Each query fixes its own
+(src, dst, t0), so the node is rebooted once per distinct source and every
+query for that source is dispatched on that boot; ION's host-singleton
+constraint keeps the whole sweep serial. The node-number remap in the
+plan manifest keeps ids dense (1..N), so the per-neighbor bprc/ipnrc
+templating below holds unchanged at this scale — each first hop still
+needs its own egress plan and outduct, or cgrfetch rejects the route.
+
+Each live dispatch is graded against the frozen ION-mirror prediction in
+out_s5/predictions.jsonl, which is computed in ION's own margin frame
+(owlt' = owlt + (125*owlt)//186282). cgrfetch's dispatch instant drifts a
+second or two off the requested t0 because cgrfetch re-reads the wall
+clock at its own start; the route is invariant across that drift on these
+full-window plans, but the arrival shifts with it. The route is therefore
+graded against the frozen prediction's hop sequence, and the arrival
+against the mirror recomputed at ION's MEASURED dispatch instant — the
+same measured-instant discipline compare.py uses for the lean side. A
+none verdict is confirmed two-sided against the frozen None.
 """
 
+import argparse
 import glob
+import json
 import os
 import subprocess
+import sys
 import time
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -203,3 +228,190 @@ class IonNode:
         time.sleep(0.5)
         purge_ion()
         return False
+
+
+# --------------------------------------------------------- corpus validation
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cgr_oracle import fetch_routes  # noqa: E402
+from predict import parse_plan, ion_route  # noqa: E402
+
+
+def load_queries(pdir):
+    """dsn_real_v1 queries.jsonl ({src,dst,t0}), or the corpus_v3-family
+    pairs.jsonl (query-flagged pairs with a single t0_s each)."""
+    qf = pdir / "queries.jsonl"
+    if qf.exists():
+        return [json.loads(line) for line in open(qf)]
+    out = []
+    for line in open(pdir / "pairs.jsonl"):
+        p = json.loads(line)
+        if p.get("query"):
+            out.append({"src": p["src"], "dst": p["dst"], "t0": p["t0_s"]})
+    return out
+
+
+def load_predictions(path, plan_id):
+    """Frozen ion_pred per (src, dst, t0) for one plan; None if no file."""
+    if not path:
+        return None
+    preds = {}
+    for line in open(path):
+        rec = json.loads(line)
+        if rec.get("plan_id") != plan_id or "error" in rec:
+            continue
+        for q in rec["queries"]:
+            preds[(q["src"], q["dst"], q["t0"])] = q["ion_pred"]
+    return preds
+
+
+def _ion_chosen(routes):
+    """ION's pick: SELECTED route, else best CONSIDERED, else none — the same
+    rule compare.py applies (flag DEFAULT/IDENTIFIED carry an ignoreReason)."""
+    selected = [r for r in routes if r["flag"] == 3]
+    if selected:
+        return min(selected, key=lambda r: r["arrival_rel"])
+    considered = [r for r in routes if r["flag"] == 2]
+    if considered:
+        return min(considered, key=lambda r: r["arrival_rel"])
+    return None
+
+
+def validate_plan(pdir, predictions, sink, settle_s=1.0):
+    """Run every dispatch of one dsn plan on live ION, one boot per distinct
+    source, and write one graded JSONL row per dispatch with flush().
+
+    The frozen prediction is graded by ROUTE (dispatch-invariant on these
+    full-window plans); the live ARRIVAL is graded against the ION mirror
+    recomputed at ION's measured dispatch instant, since cgrfetch's wall-clock
+    re-read drifts the dispatch a second or two off t0 (module docstring).
+    """
+    nm = json.load(open(pdir / "plan_manifest.json"))["node_map"]
+    queries = load_queries(pdir)
+    contacts, ranges = parse_plan(pdir)
+    icontacts = sorted((int(f), int(t), s, e, v)
+                       for f, t, s, e, v in contacts)
+    iranges = [(int(f), int(t), s, e, v) for f, t, s, e, v in ranges]
+
+    by_src = defaultdict(list)
+    for q in queries:
+        by_src[q["src"]].append(q)
+
+    tally = {"dispatches": 0, "route_exact": 0, "arrival_match": 0,
+             "none_match": 0, "mismatch": 0}
+    raw_dir = pdir.name
+    for src in sorted(by_src):
+        workdir = Path(sink.name).parent / "raw" / pdir.name / src
+        with IonNode(nm[src], pdir / "contact_plan.ionrc", workdir) as ion:
+            time.sleep(settle_s)  # let bp daemons settle before simulating
+            for q in by_src[src]:
+                dst, t0 = q["dst"], q["t0"]
+                oracle = fetch_routes(nm[dst], t0, ion, workdir)
+                drel = oracle["dispatch_rel"]
+                chosen = _ion_chosen(oracle["routes"])
+                mirror = ion_route(icontacts, iranges, nm[src], nm[dst], drel)
+                frozen = (predictions.get((src, dst, t0))
+                          if predictions is not None else None)
+
+                row = {"plan_id": pdir.name, "src": src, "dst": dst,
+                       "t0": t0, "dispatch_rel": drel,
+                       "raw": oracle["raw_path"]}
+                tally["dispatches"] += 1
+                if chosen is None:
+                    row["ion"] = None
+                    row["frozen"] = frozen
+                    # none confirmed against the frozen None and the mirror
+                    ok = (predictions is None or frozen is None) \
+                        and mirror is None
+                    row["none_match"] = ok
+                    if ok:
+                        tally["none_match"] += 1
+                    else:
+                        tally["mismatch"] += 1
+                        row["mismatch"] = True
+                        row["mirror"] = mirror
+                else:
+                    live_hops = [[int(f), int(t)] for f, t in chosen["hops"]]
+                    row["ion"] = {"arrival_rel": chosen["arrival_rel"],
+                                  "hops": live_hops}
+                    frozen_hops = ([[f, t] for f, t, _ in frozen["hops"]]
+                                   if frozen else None)
+                    route_ok = (predictions is None) or \
+                        (live_hops == frozen_hops)
+                    arr_ok = (mirror is not None
+                              and chosen["arrival_rel"] == mirror["arrival"])
+                    row["route_exact"] = route_ok
+                    row["arrival_match"] = arr_ok
+                    if route_ok:
+                        tally["route_exact"] += 1
+                    if arr_ok:
+                        tally["arrival_match"] += 1
+                    if not (route_ok and arr_ok):
+                        tally["mismatch"] += 1
+                        row["mismatch"] = True
+                        row["frozen"] = frozen
+                        row["mirror"] = mirror
+                sink.write(json.dumps(row) + "\n")
+                sink.flush()
+    return tally
+
+
+def cmd_validate(args):
+    corpus = Path(args.corpus)
+    outp = Path(args.out)
+    outp.parent.mkdir(parents=True, exist_ok=True)
+
+    done = set()
+    if outp.exists():
+        for line in open(outp):
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            if "plan_done" in rec:
+                done.add(rec["plan_done"])
+
+    plans = [p for p in sorted(corpus.glob(args.glob))
+             if p.is_dir() and (p / "contact_plan.ionrc").exists()
+             and p.name not in done]
+    if args.limit_plans:
+        plans = plans[:args.limit_plans]
+    print(f"{len(done)} plans done, {len(plans)} to go", flush=True)
+
+    with open(outp, "a") as sink:
+        for i, pdir in enumerate(plans):
+            t0 = time.time()
+            try:
+                tally = validate_plan(pdir, load_predictions(
+                    args.predictions, pdir.name), sink, args.settle)
+                rec = {"plan_done": pdir.name, "tally": tally,
+                       "wall_s": round(time.time() - t0, 1)}
+            except Exception as e:  # one plan must never kill the batch
+                rec = {"plan_done": pdir.name, "error": repr(e),
+                       "wall_s": round(time.time() - t0, 1)}
+            sink.write(json.dumps(rec) + "\n")
+            sink.flush()
+            print(f"[{i + 1}/{len(plans)}] {pdir.name} "
+                  f"{rec.get('tally', rec.get('error'))} "
+                  f"{rec['wall_s']}s", flush=True)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    v = sub.add_parser("validate", help="live ION over the dsn_real_v1 corpus")
+    v.add_argument("--corpus", required=True)
+    v.add_argument("--glob", default="dsn_real_v1_plan_*")
+    v.add_argument("--predictions", default=None,
+                   help="frozen ION-mirror predictions JSONL to grade against")
+    v.add_argument("--out", default="out_s5/ion_live.jsonl")
+    v.add_argument("--limit-plans", type=int, default=None)
+    v.add_argument("--settle", type=float, default=1.0,
+                   help="seconds to let bp daemons settle after each boot")
+    v.set_defaults(fn=cmd_validate)
+    args = ap.parse_args()
+    args.fn(args)
+
+
+if __name__ == "__main__":
+    main()
