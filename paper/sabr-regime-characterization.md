@@ -322,11 +322,15 @@ deviation are emergent, since its single-route construction never
 consults either key (§A.1).
 
 On dsn_real_v1 the current reference is conformant on 6935/6935.
-ION's registered profile (mirror-predicted, frozen, awaiting live
-validation), graded in ION's declared margin frame with the oracles
+ION's registered profile (frozen, confirmed against live ION 4.1.4),
+graded in ION's declared margin frame with the oracles
 margined identically: key-1 confirmed two-sided in frame on all 8912
 dispatches; 6905 conformant, key-2 excess 0, key-3 30, key-4 0 -
-99.6% conformant in its own frame. The complementary profiles of the
+99.6% conformant in its own frame. The live differential pass over the
+corpus confirmed this profile against ION 4.1.4 on every dispatch (8912
+dispatches, 6935/6935 route-exact, zero mismatches;
+docs/notes/2026-06-07-live-ion-55-plan-validation.md), so the grade is
+read off ION's actual routes, not a mirror prediction. The complementary profiles of the
 quantized regime converge on real deep-space plans; what remains on
 the margin axis is the value footprint of §4.2, kept cross-frame and
 labeled. On the helio bands the reference is conformant on all 5016.
