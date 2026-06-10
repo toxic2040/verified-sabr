@@ -46,8 +46,11 @@ corpus, relay-sourced under the same protocol, opens residue on 37 of
 55 plans and fires on none. Along the way we show that which of the standard's four
 selection keys does the deciding is a property of the contact plan's
 route multiplicity - the "tiebreak" tail decides 75% of dispatches on
-a quantized cislunar mesh and 1-4% everywhere else, flat across three
-orders of magnitude of light time - a regime dependence the standard
+a quantized cislunar mesh, 77% on that same mesh at homogeneous
+interplanetary light times, 24% there once per-contact heterogeneity
+breaks the ties that accumulate OWLT, and 1-4% on the sparse and star
+corpora, flat across three orders of magnitude of light time - a
+regime dependence the standard
 never indexes. Fix the four deferred points and pin the route object
 stored at full-tuple ties, and two faithful
 implementations of this standard are behaviorally identical on every
@@ -130,7 +133,13 @@ Concretely, this paper establishes:
   DSN tracking - and show the driver is multiplicity, not OWLT:
   arrival decides 24.6% of route identity on the first family and
   96-99% on the others, flat across three orders of magnitude of
-  light time.
+  light time. A controlled fourth family closes the two-by-two under
+  a frozen prediction (§6.1): the same mesh at homogeneous
+  interplanetary light times reproduces the quantized cell (keys 1-2
+  pin 22.9%), and per-contact heterogeneity moves it to 76.3% - the
+  predicted side, short of its registered 90% anchor, because window
+  starts on shared contacts regenerate the degeneracy heterogeneity
+  was predicted to destroy.
 - **An irreducible-residue anatomy and a determinism theorem-pair**
   (§6.2): the standard's order observes a route only through (arrival,
   length, minimum end time, first hop); two routes differing strictly
@@ -252,6 +261,12 @@ this paper is a theorem of a construction, not a statistic about one.
   84,725 s (Voyager 1), spacecraft-antenna-NOC topology over an
   always-on terrestrial backbone. 8912 dispatches (6935 found, 1977
   none, both verdicts oracle-confirmed two-sided).
+- **dense2x2_v1** (controlled cell): corpus_v3's mesh with every light
+  time rewritten to 1980-3300 s - one value per plan (HOMOG) or one
+  per contact (HETERO), 250 plans per variant; topology, windows, and
+  rates untouched, so the cell isolates the OWLT-structure variable.
+  Built to close the §6.1 two-by-two under a frozen prediction. 1250
+  dispatches per variant.
 
 ### 2.5 The cap-killing technique
 
@@ -487,30 +502,65 @@ given the complete candidate list:
 | helio B0     | 0-1 s       | sparse 7-node fixture      | 99.0%    | 0.9%  | 0.0%  | 0.1% |
 | helio B1-B3  | 10-3300 s   | sparse 7-node fixture      | 98.2-99.4% | 0.6-1.4% | 0.0% | 0-0.3% |
 | dsn_real_v1  | 1-84,725 s  | star, antenna multiplicity | 96.3%    | 0.6%  | 3.1%  | 0%   |
+| dense2x2 HOMOG  | 1980-3300 s, one per plan   | dense 13-node mesh | 22.9% | 69.1% | 8.0% | 0% |
+| dense2x2 HETERO | 1980-3300 s, one per contact | dense 13-node mesh | 76.3% | 15.8% | 7.9% | 0% |
 
 The sweep was designed to trace a transition along the OWLT axis and
 instead falsified the axis: band B0 shares corpus_v3's light-time
 regime and shows none of its tiebreak load. The driver is arrival-tied
 route MULTIPLICITY - topology density times window overlap - with
-zero-OWLT quantization an amplifier that needs density to express. (A
-pre-registered prediction of the original sweep plan, that tie rate
-collapses with OWLT scale, is thereby partially falsified; the
-registered prediction for the unmeasured dense-topology, large-OWLT
-cell is that heterogeneous light times break ties and homogeneous ones
-preserve them, the variable being arrival-value degeneracy across
-parallel routes.)
+arrival-value degeneracy the amplifier that needs density to express.
+(A pre-registered prediction of the original sweep plan, that tie rate
+collapses with OWLT scale, is thereby partially falsified.)
+
+The dense-topology, large-OWLT cell - the two-by-two's missing corner -
+was then measured against a frozen prediction (anchors registered
+2026-06-05T17:15Z, before any grading pass: HOMOG passes below a 50%
+keys-1-2 pin, HETERO above 90%, separation over 40 points required;
+registered mechanism: heterogeneous light times break ties,
+homogeneous ones preserve them, the variable being arrival-value
+degeneracy across parallel routes). The adjudication is split. HOMOG
+confirmed at the strong anchor: keys 1-2 pin 22.9%, sitting on
+corpus_v3's 24.6% - equal light times at interplanetary scale
+reproduce the quantized cell, so degeneracy, not quantization itself,
+is what that cell was measuring. HETERO landed on the predicted side
+with the required separation (76.3%, +53.4 points over HOMOG) and
+FAILED its registered threshold (76.3 < 90): per-contact heterogeneity
+breaks only the ties that accumulate OWLT, and in a dense mesh
+parallel routes frequently converge on a shared downstream contact
+whose window start gates departure - arrival is max(t, start) + owlt
+on the shared leg - so per-hop differences are absorbed and the tie
+survives; 296 of 1250 HETERO dispatches retain two or more tied
+minimum-hop routes, some at multiplicity 20-53. That gating account is
+post hoc (§8): what the registration missed is that waiting, not
+propagation, sets arrival wherever schedules are slack, and waiting
+regenerates the degeneracy heterogeneity was predicted to destroy. The
+corrected field statement: route multiplicity drives which key
+decides, degenerate arrivals are its amplifier, and a dense schedule
+regenerates degeneracy through window gating at any light-time scale -
+no OWLT regime rescues a dense mesh from its tiebreak load. A live ION
+leg over both variants (route-exact on 72.6% and 68.6% of dispatches,
+every non-match at a tied multiplicity class, arrivals within
+quantization on matches) confirms the graded selections are
+live-executable, the tie classes resolved differently by the two
+implementations - the §4.1/§7 freedom again, now at interplanetary
+light times.
 
 The design statement this licenses: SABR's four keys are a fixed
 lexicographic order, but which key is load-bearing is a property of
-the plan, which the standard never indexes. On the dense quantized
-mesh the standard's primary objective does a quarter of the deciding
-and the "tiebreak" tail does three quarters; everywhere else arrival
-does nearly all of it. Arrival primacy is not wrong; its
+the plan, which the standard never indexes. On the dense mesh the
+standard's primary objective does a quarter of the deciding and the
+"tiebreak" tail does three quarters - whether the light times are
+quantized zeros or homogeneous interplanetary values - and per-contact
+heterogeneity claws back only the ties that accumulate OWLT, leaving
+the tail a quarter of the deciding; on the sparse and star corpora
+arrival does nearly all of it. Arrival primacy is not wrong; its
 informativeness is regime-contingent, and the text treats a collapsed
 objective identically to a discriminating one. A standard intending
 one behavior across regimes would need either a regime-aware order or
-a finer arrival representation where quantization collapses key 1.
-SABR has neither.
+a finer arrival representation where degenerate arrivals collapse
+key 1 - and the dense cell shows finer representation alone is not
+enough where window starts gate arrival. SABR has neither.
 
 ### 6.2 Near-totality and the irreducible residue
 
@@ -666,9 +716,13 @@ reliability risk is textual, not algorithmic.
 
 ## 8. Limitations
 
-Every rate is regime-indexed; the three corpus families are three
-points in a plan-structure space, and the dense-topology large-OWLT
-cell is unmeasured (its prediction is registered, §6.1). The ION leg
+Every rate is regime-indexed; the three corpus families plus the
+controlled dense2x2 cell are four points in a plan-structure space.
+The dense cell's HETERO anchor failed its registered threshold, and
+the window-gating account of the miss is post hoc and unregistered -
+it predicts tie mass wherever shared-contact window starts gate
+arrival, and that prediction is untested beyond the cell that
+motivated it. The ION leg
 on the real-DSN corpus is live-validated and margin-frame graded
 (§3); ION carries no leg on the helio bands, where only the reference
 is measured. Multi-priority charging and
@@ -735,7 +789,7 @@ A reader of a result this null-shaped - "the implementations were
 never the risk" - is owed an account of why the conclusion is not a
 story fitted to the data. The account is that the program tried,
 repeatedly and by design, to break its own claims, and the record of
-those attempts is the evidence. Six times the object under
+those attempts is the evidence. Seven times the object under
 measurement dissolved when a control built against our own hypothesis
 fired: the reference could not certify itself from inside its own
 frame (caught by the strict-superset oracle requirement); a
@@ -750,7 +804,10 @@ divergence died under adjudication, with that closure then made
 structural rather than empirical; and the prior draft's volume
 verdict - permitted-but-inert - fell to a one-flag traffic-shape
 experiment built in response to an external review, the absorption
-mechanism having been source-relative all along (§7). Each catch came from a
+mechanism having been source-relative all along (§7); and the dense
+cell's registered HETERO anchor failed at its own threshold, the miss
+exposing a mechanism - window starts regenerating arrival degeneracy -
+that the registered story had no room for (§6.1). Each catch came from a
 pre-registered prediction, a deliberately stronger oracle frame, or a
 provenance check - instruments built to surface exactly the failure
 they surfaced.
@@ -844,7 +901,10 @@ files; `scripts/diffharness/` (differential harness, two-oracle
 instrument v3 with per-dispatch dump, mechanism mirrors with frozen
 prediction files and scores, the 4-key field runner, the
 distribution-swap runner, the two-ledger volume replay with embedded
-witness selftest); per-corpus reports under `out_diff_v3/` and
+witness selftest, the dense2x2 ION fold-in and cell analysis); the
+dense2x2 frozen anchors and cell results under `out_s5/`
+(`dense2x2_predictions.json`, registered before any grading pass);
+per-corpus reports under `out_diff_v3/` and
 `out_s5/`, and the volume-replay relay runs with their depth-4
 adjudications under `out_evl_relay/` (corpus_v3 and dsn_real_v1, both
 contentions); the standalone acyclicity erratum and the working notes
