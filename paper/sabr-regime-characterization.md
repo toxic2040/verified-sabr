@@ -41,7 +41,9 @@ mesh deployments, and the witness's own geometry - and the channel
 fires on 36 of 1000 cislunar plans at contention 2.0 and 82 at 8.0
 (depth-4-adjudicated), every divergence an entry split in which the
 two conformant systems
-enqueue the same bundle to different neighbors. Along the way we show that which of the standard's four
+enqueue the same bundle to different neighbors - while the real-DSN
+corpus, relay-sourced under the same protocol, opens residue on 37 of
+55 plans and fires on none. Along the way we show that which of the standard's four
 selection keys does the deciding is a property of the contact plan's
 route multiplicity - the "tiebreak" tail decides 75% of dispatches on
 a quantized cislunar mesh and 1-4% everywhere else, flat across three
@@ -148,12 +150,13 @@ Concretely, this paper establishes:
   channel inert under endpoint-sourced traffic - the absorbing
   mechanism named, both enumeration-cap exposures
   closed structurally rather than by sampling - and live under
-  relay-sourced traffic, firing on 36 to 82 of 1000 plans as
-  contention runs 2.0 to 8.0 (depth-4-adjudicated), every divergence
-  an entry split.
-  Permitted, with traffic-shape-indexed firing and a one-line fix
-  (pin the stored representative): the pair of measurements, not
-  either one, is the result.
+  relay-sourced traffic on the quantized mesh, firing on 36 to 82 of
+  1000 plans as contention runs 2.0 to 8.0 (depth-4-adjudicated),
+  every divergence an entry split - with the real-DSN corpus absorbing
+  the same relay protocol (37 of 55 plans open residue, none fire).
+  Permitted, with firing indexed by traffic shape and plan structure,
+  and a one-line fix (pin the stored representative): the set of
+  measurements, not any one, is the result.
 
 The methods that make these claims auditable are themselves a
 contribution (§2-3): a kernel-checked reference whose theorems are
@@ -568,8 +571,10 @@ overhead. Under those conditions, on corpus_v3 at contention 2.0:
 32 residue events at the depth-3 cap, all washed out but one found/none
 cap artifact that resolves at depth 4 by found-verdict monotonicity
 (below), leaving every action stream identical end to end. On dsn_real_v1: zero residue events at all -
-no ties, nothing to store divergently, the channel closed upstream by
-the regime. The divergence the standard permits did not occur on
+the endpoint dispatch set meets no full-tuple ties, so nothing is
+stored divergently. The absence belongs to the dispatch set, not the
+corpus: relay-sourced dispatch opens ties on these same plans
+(below). The divergence the standard permits did not occur on
 endpoint-sourced traffic under stress exceeding any realistic
 deployment, and the reason is structural, not statistical: the
 multiplicity that creates residue is the same multiplicity that
@@ -622,16 +627,33 @@ divergences persist, and 36 of the 40 at contention 2.0 persist with
 4 dissolving under the deeper cap. The cap-robust rates are 3.6% and
 8.2% of plans.
 
+The same relay protocol on dsn_real_v1 opens the channel's
+precondition and not the channel: 37 of 55 plans carry residue events
+(4,785 in total - so the real corpus does hold full-tuple ties once
+relay sourcing widens the dispatch set, which is why the endpoint
+sentence above is scoped to its dispatch set), and every event washes
+out - zero divergences at contention 2.0 and at 8.0, with the residue
+profile identical across the two contentions, as it should be: ties
+are a plan-and-dispatch property, and contention scales only the
+charge that lands on them. The firing is therefore doubly
+regime-indexed: by traffic shape (endpoint sourcing never fires it)
+and by plan structure (the quantized mesh fires under relay sourcing;
+the real deep-space corpus absorbs the same protocol - presumably
+through the same tuple-equivalent fallbacks, though the per-event
+absorption anatomy is not traced here).
+
 **Verdict on the founding question, as a closure claim.** The volume
 channel is the fifth deferred point, and it is textual like the
 others: §3.2.8.1.4 a) 4) resolves full-tuple ties "arbitrarily,"
 §3.2.8.1.2 charges the arbitrarily-stored object, and the pair is a
 conformant divergence channel whose firing is regime-indexed by
-traffic shape and contention - zero firings under endpoint-sourced
-traffic at any measured contention, by an absorption mechanism that
-is source-relative; 36 to 82 of 1000 plans under relay-sourced
-traffic as contention runs 2.0 to 8.0, depth-4-adjudicated entry
-splits all. The fix
+traffic shape, plan structure, and contention - zero firings under
+endpoint-sourced traffic at any measured contention, by an absorption
+mechanism that is source-relative; 36 to 82 of 1000 quantized-mesh
+plans under relay-sourced traffic as contention runs 2.0 to 8.0,
+depth-4-adjudicated entry splits all; zero of 55 real-DSN plans under
+the same relay protocol, every one of their 4,785 relay-opened
+residue events absorbed. The fix
 costs what the other four cost: pin the stored representative at
 full-tuple ties (any canonical choice serves; the two ledgers here
 bracket the conformant extremes). Fix the four of §4 and pin the
@@ -647,8 +669,9 @@ reliability risk is textual, not algorithmic.
 Every rate is regime-indexed; the three corpus families are three
 points in a plan-structure space, and the dense-topology large-OWLT
 cell is unmeasured (its prediction is registered, §6.1). The ION leg
-on the real-DSN corpus awaits margin-frame grading; ION's profile
-there is a frozen mirror prediction. Multi-priority charging and
+on the real-DSN corpus is live-validated and margin-frame graded
+(§3); ION carries no leg on the helio bands, where only the reference
+is measured. Multi-priority charging and
 fragmentation are unexplored. Adversarial traffic proper - sizing and
 timing aimed at forcing a split at a chosen dispatch - remains out of
 scope, and the relay measurement sharpens what it leaves open:
@@ -748,7 +771,8 @@ break; settled through the volume layer under endpoint-sourced traffic at
 stress beyond realistic deployment, where the fifth divergence channel
 - the route object stored at full-tuple ties - is inert there by an
 absorption mechanism but fires under relay-sourced traffic at measured
-rates (36 to 82 of 1000 plans, depth-4-adjudicated); and
+rates (36 to 82 of 1000 quantized-mesh plans, depth-4-adjudicated;
+zero of 55 real-DSN plans, all relay-opened residue absorbed); and
 ranging over a candidate list, a margin value, a route class, and a
 graph that the text leaves to its implementers, its operators, and in
 one case to a false declaration. The fix costs are small and named.
@@ -821,5 +845,7 @@ instrument v3 with per-dispatch dump, mechanism mirrors with frozen
 prediction files and scores, the 4-key field runner, the
 distribution-swap runner, the two-ledger volume replay with embedded
 witness selftest); per-corpus reports under `out_diff_v3/` and
-`out_s5/`; the standalone acyclicity erratum and the working notes
+`out_s5/`, and the volume-replay relay runs with their depth-4
+adjudications under `out_evl_relay/` (corpus_v3 and dsn_real_v1, both
+contentions); the standalone acyclicity erratum and the working notes
 (`docs/notes/`) from which this draft's numbers are drawn verbatim.
