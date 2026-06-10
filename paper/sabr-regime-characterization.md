@@ -546,6 +546,25 @@ live-executable, the tie classes resolved differently by the two
 implementations - the §4.1/§7 freedom again, now at interplanetary
 light times.
 
+The gating account was then put under its own registration: a
+five-level window-slack sweep over the same mesh (anchors frozen
+before the corpus existed; the sweep note carries a voided first
+corpus, an instrument defect both parsers shared, caught by the
+two-sided oracle at the smoke stage). Sliding every window start
+earlier - feasibility only grows, OWLT and queries untouched - takes
+gating from 46.5% of dispatches to exactly zero, and tie mass tracks
+it, 23.7% to 0.2%, Spearman 1.0; at every level with tie mass to
+classify, at least 96% of tail-decided dispatches ride a gated route;
+and at the no-gating endpoint the keys 1-2 pin reaches 99.8% -
+clearing the 90% bar the gated cell missed, with the residue two
+OWLT-sum collisions per thousand, the one tie class the mechanism
+does not claim. One registered letter failed in the sweep itself: the
+strict-decrease anchor was written without anticipating the gating
+curve saturating at zero one level early, and is recorded failed at
+that floor-degenerate step. Window gating is the mechanism of the
+dense cell's tiebreak load; what remains open is family scope - one
+topology, one query set.
+
 The design statement this licenses: SABR's four keys are a fixed
 lexicographic order, but which key is load-bearing is a property of
 the plan, which the standard never indexes. On the dense mesh the
@@ -718,11 +737,13 @@ reliability risk is textual, not algorithmic.
 
 Every rate is regime-indexed; the three corpus families plus the
 controlled dense2x2 cell are four points in a plan-structure space.
-The dense cell's HETERO anchor failed its registered threshold, and
-the window-gating account of the miss is post hoc and unregistered -
-it predicts tie mass wherever shared-contact window starts gate
-arrival, and that prediction is untested beyond the cell that
-motivated it. The ION leg
+The dense cell's HETERO anchor failed its registered threshold; the
+window-gating account of the miss, post hoc when first offered, has
+since passed a registered slack sweep on its motivating mesh (§6.1) -
+what remains untested is family scope (one topology, one query set),
+and the sweep's own strict-decrease letter failed at a
+floor-degenerate step, a registration-writing defect disclosed in its
+note. The ION leg
 on the real-DSN corpus is live-validated and margin-frame graded
 (§3); ION carries no leg on the helio bands, where only the reference
 is measured. Multi-priority charging and
@@ -901,9 +922,12 @@ files; `scripts/diffharness/` (differential harness, two-oracle
 instrument v3 with per-dispatch dump, mechanism mirrors with frozen
 prediction files and scores, the 4-key field runner, the
 distribution-swap runner, the two-ledger volume replay with embedded
-witness selftest, the dense2x2 ION fold-in and cell analysis); the
-dense2x2 frozen anchors and cell results under `out_s5/`
-(`dense2x2_predictions.json`, registered before any grading pass);
+witness selftest, the dense2x2 ION fold-in and cell analysis, the
+window-slack ladder/gating analyzer); the dense2x2 frozen anchors and
+cell results under `out_s5/` (`dense2x2_predictions.json`, registered
+before any grading pass); the slack-sweep registration and per-level
+reports under `out_s5/slack_sweep_predictions.json` and `out_slack/`
+(corpus generator in cislunar-lab, `run_slack_corpus.py`);
 per-corpus reports under `out_diff_v3/` and
 `out_s5/`, and the volume-replay relay runs with their depth-4
 adjudications under `out_evl_relay/` (corpus_v3 and dsn_real_v1, both
