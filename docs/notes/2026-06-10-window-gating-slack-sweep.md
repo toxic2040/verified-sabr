@@ -64,3 +64,38 @@ failing alone refutes the gating account even if the correlational
 anchors pass.
 
 ---- RESULTS BELOW THIS LINE ARE APPENDED AFTER THE RUNS ----
+
+## v1 corpus VOID at the 10-plan smoke: format defect, not a verdict
+
+The first generator (pure start-shift) is void by the registration's
+own instrument-validity clause. Both ionrc parsers - the harness
+(`instrument.parse_ionrc`) and the Lean ingester (`Ionrc.lean`
+`buildPlan`) - join range lines to contact lines by exact
+(FROM, TO, START). The start-shift makes same-pair windows collide on
+their start field (at OPEN, all 13 windows of a pair sit at +0), so
+per-contact OWLT becomes inexpressible: the harness parser's dict
+silently keeps the last range line, the Lean parser resolves the
+ambiguity its own way, and the two sides no longer grade the same
+plan. The smoke caught it as instrument failure, not as mechanism
+data: key-1 disagreements 45/50 (OPEN) and 32/50 (s2) against a
+two-sided oracle that had agreed on every dispatch of every prior
+corpus. Disclosure: the smoke's ladder remnants over the few agreeing
+dispatches read keys-1-2 pin 10.0% (OPEN, n=5) and 36.0% (s2, n=18);
+these are computed over an ill-formed corpus with the two sides
+disagreeing on key 1 itself and carry no evidential weight for the
+anchors - recorded here so nothing seen goes unrecorded.
+
+## Amendment (before any production run): de-collided starts
+
+The rewrite gains one rule: after the slack shift, integer starts
+within each directed pair are de-collided by +1 s bumps (sorted by
+original start, then end; at most 12 s for the densest pair). The
+bumps are two orders of magnitude below the OWLT scale (1980-3300 s)
+and below every query t0 (120 s), so they cannot re-introduce
+mechanism-relevant gating: at OPEN, starts sit at 0-12 s against
+t0 = 120 s and downstream arrivals >= t0 + 1980 s, so gating_any
+remains exactly 0.0 by construction and the registered void-check is
+unchanged. At s0 no same-pair starts collide (real geometry), no
+bumps fire, and the control regenerates the source plans unchanged -
+P3 binds as registered. All anchors P1-P5 stand verbatim; nothing
+about the prediction moved.
