@@ -131,9 +131,9 @@ Concretely, this paper establishes:
   a quantized cislunar mesh, a sparse heliocentric fixture swept from
   0 to 3300 s OWLT, and contact plans built from two months of real
   DSN tracking - and show the driver is multiplicity, not OWLT:
-  arrival decides 24.6% of route identity on the first family and
-  96-99% on the others, flat across three orders of magnitude of
-  light time. A controlled fourth family closes the two-by-two under
+  the first two keys (arrival, then hop count) pin 24.6% of route
+  identity on the first family and 96-99% on the others, flat across
+  three orders of magnitude of light time. A controlled fourth family closes the two-by-two under
   a frozen prediction (§6.1): the same mesh at homogeneous
   interplanetary light times reproduces the quantized cell (keys 1-2
   pin 22.9%), and per-contact heterogeneity moves it to 76.3% - the
@@ -875,8 +875,11 @@ is sound (oracle-confirmed two-sided); the 512 key-2 excesses are the
 stale-hop-count approximation at arrival ties; key 3 is never
 consulted and ION's relative key-3 strength is emergent; key 4 is
 never consulted and the index-order tie bias yields a single
-deviation. ION's OWLT margin is integer-arithmetic zero below 1491 s
-of light time - all of corpus_v3 - and nonzero on the deep-space bands
+deviation. ION's OWLT margin is `(MAX_SPEED_MPH/3600) * owlt / 186282`
+in C integer arithmetic (`libcgr.c`, with `ion.h` pinning
+`MAX_SPEED_MPH` at 450000, so the margin is 125·owlt/186282): zero
+through 1490 s of light time - all of corpus_v3 - and nonzero from
+1491 s, which the measured corpora reach only on the deep-space bands
 (the 851-dispatch footprint of §4.2).
 
 ### A.2 Reference generations
@@ -923,7 +926,8 @@ instrument v3 with per-dispatch dump, mechanism mirrors with frozen
 prediction files and scores, the 4-key field runner, the
 distribution-swap runner, the two-ledger volume replay with embedded
 witness selftest, the dense2x2 ION fold-in and cell analysis, the
-window-slack ladder/gating analyzer); the dense2x2 frozen anchors and
+window-slack ladder/gating analyzer, the first-vs-last-byte inversion
+runner behind §8's bundle-size-gated rates); the dense2x2 frozen anchors and
 cell results under `out_s5/` (`dense2x2_predictions.json`, registered
 before any grading pass); the slack-sweep registration and per-level
 reports under `out_s5/slack_sweep_predictions.json` and `out_slack/`
