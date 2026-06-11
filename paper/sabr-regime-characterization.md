@@ -189,9 +189,13 @@ valid (T1); the selected candidate is minimal in the full four-key
 order over the frontier (T2a); on plans with nonnegative OWLT the
 returned arrival is globally optimal over the unbounded route class,
 contact-reusing competitors included, by a loop-erasure argument
-(T2b); and the search returns `none` exactly when no valid route
-exists (completeness). The nonnegative-OWLT hypothesis is load-bearing
-and witnessed: with a negative OWLT, T2b is false.
+(T2b); and, under the same nonnegative-OWLT hypothesis, the search
+returns `none` exactly when no valid route exists (completeness) -
+together a verified decision procedure for earliest-arrival routing on
+such plans. The hypothesis binds T2b and completeness alike (T1 and
+T2a carry no plan hypothesis), is discharged by construction on every
+ingested ionrc plan (integer light seconds are nonnegative), and is
+load-bearing, witnessed: with a negative OWLT, T2b is false.
 
 The formal results deliberately stop at key 1 globality: keys 2-4 are
 correct over the explored frontier, and what reaches the frontier is

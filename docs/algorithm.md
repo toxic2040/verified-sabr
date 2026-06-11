@@ -717,6 +717,16 @@ a range   +START +END FROM TO OWLT
   generator emits them 1:1). A contact line with no matching range line gets
   owlt 0; malformed lines are skipped. Both behaviors are deliberate: the
   harness must never silently repair a plan, only ingest or visibly drop.
+- The `(FROM, TO, START)` key is also an expressiveness bound: two same-pair
+  contacts whose starts coincide cannot carry distinct OWLTs, so per-contact
+  OWLT is inexpressible in this subset for start-aligned same-pair window
+  families. A collided plan is worse than inexpressible - it is not even
+  graded identically, since the harness dict keeps the last range line while
+  the Lean parser resolves the duplicate its own way, and the two-sided key-1
+  oracle reports the split as instrument failure (45/50 disagreements at the
+  voided slack-sweep v1 smoke; see the 2026-06-10 window-gating note).
+  Corpora that need per-contact OWLT on dense same-pair windows must
+  de-collide starts first (the sweep's +1 s bumps).
 - Forward and reverse contacts are distinct lines (§1 modeling note).
 
 ### 9.2 Time base and dispatch alignment
