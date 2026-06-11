@@ -51,4 +51,16 @@ Combined with the dsn absorption result and the source-relative washout mechanis
 - The EVL triple items are now addressed: entry-divergence above depth 4 (empirically passes at d5), multi-priority and adversarial (documented open per §8), plus the hardening gate.
 - Zero sorrys on main files; ws guard/stale checks performed; catalog-rescan clean for this repo's artifacts (unrelated stales elsewhere).
 
-Final numbers and any watcher "COMPLETED" output will be visible via the attached monitor once the background processes exit.
+Final numbers are recorded in the completion section below; the watcher was retired mid-run, so the jsonl files are the source of record.
+
+## d5 completion (2026-06-11)
+
+The watcher and scheduler were turned off mid-run (the sequential wrapper still fired c2 at the c8=82 boundary just before that), so completion numbers come from the jsonl directly, re-tallied independently rather than copied from watcher output.
+
+c8: complete, 82/82 persist (`relay_c8_adj5.jsonl`, 82 records, final write 01:40).
+- first_divergence type: entry on all 82; first-split n in [25, 1711], all above the d4 horizon as scoped.
+- aggregate actions: same 141391, entry_diverged 300, found_none 5 (the known low-volume cap artifacts, same pattern as d4).
+- pbat_gap_dispatches = 0 on every record.
+- Disposition identical to d4: no new dissolves, no masked entry divergence. The "above depth 4" leg of the EVL triple passes; the expectation stated in the Results section held exactly.
+
+c2: still running detached (launched 01:41, ~16 workers, `--depth 5 --contention 2.0 --traffic relay`). 5/40 records as of 01:59. Of the first four: 000167 and 000263 dissolve again (both members of the d4 dissolve set {000167, 000236, 000263, 000831}); 000373 and 000352 persist as entry splits with pbat_gap = 0. Early behavior matches d4. Final tally to be appended at completion.
