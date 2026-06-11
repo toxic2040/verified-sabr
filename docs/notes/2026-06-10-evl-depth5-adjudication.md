@@ -63,4 +63,10 @@ c8: complete, 82/82 persist (`relay_c8_adj5.jsonl`, 82 records, final write 01:4
 - pbat_gap_dispatches = 0 on every record.
 - Disposition identical to d4: no new dissolves, no masked entry divergence. The "above depth 4" leg of the EVL triple passes; the expectation stated in the Results section held exactly.
 
-c2: still running detached (launched 01:41, ~16 workers, `--depth 5 --contention 2.0 --traffic relay`). 5/40 records as of 01:59. Of the first four: 000167 and 000263 dissolve again (both members of the d4 dissolve set {000167, 000236, 000263, 000831}); 000373 and 000352 persist as entry splits with pbat_gap = 0. Early behavior matches d4. Final tally to be appended at completion.
+c2: complete, 36/40 persist, 4 dissolve (`relay_c2_adj5.jsonl`, 40 records, final write 02:58, ~77 min wall on 16 workers).
+- dissolve set = {000167, 000236, 000263, 000831}, identical to the d4 dissolve set (the known cap artifacts at contention 2.0).
+- first_divergence type: entry on all 36 persists; first-split n in [25, 1577], all above the d4 horizon.
+- aggregate actions: same 69054, entry_diverged 66, found_none 0.
+- pbat_gap_dispatches = 0 on every record.
+
+Depth 5 introduced no new dissolves, no new divergence type, and no cap-gap dispatches at either contention. Disposition is identical to d4 on both legs: the "above depth 4" exposure is closed empirically for c8 and c2 alike, and the paper's depth-4-adjudicated phrasing needs no numeric change.
