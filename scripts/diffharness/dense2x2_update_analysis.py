@@ -71,8 +71,8 @@ def analyze_one(results_path, variant):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--het-results", default="out_s5/dense2x2_HETERO_results_ion.jsonl")
-    ap.add_argument("--hom-results", default="out_s5/dense2x2_HOMOG_results_ion.jsonl")
+    ap.add_argument("--het-results", default="out_s5/dense2x2_HETERO_results.jsonl")
+    ap.add_argument("--hom-results", default="out_s5/dense2x2_HOMOG_results.jsonl")
     ap.add_argument("--cell-in", default="out_s5/dense2x2_cell_results.json")
     ap.add_argument("--cell-out", default="out_s5/dense2x2_cell_results.json")
     ap.add_argument("--het-report-out", default="out_s5/dense2x2_HETERO_report.json")
