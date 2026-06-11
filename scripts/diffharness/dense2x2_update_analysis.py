@@ -90,9 +90,11 @@ def main():
         "HETERO": het_stats,
         "HOMOG": hom_stats,
     }
-    # append note to verdicts
-    cell["verdict"]["DENSE-HETERO"] = cell["verdict"]["DENSE-HETERO"] + " | ION live confirmed: route_exact " + str(het_stats["ion_route_exact_pct"]) + "% (hops); arrivals within 2s on exact routes."
-    cell["verdict"]["DENSE-HOMOG"] = cell["verdict"].get("DENSE-HOMOG", "") + " | ION live confirmed: route_exact " + str(hom_stats["ion_route_exact_pct"]) + "%."
+    # append note to verdicts; strip any prior ION note first so reruns don't stack
+    def with_ion_note(verdict, note):
+        return verdict.split(" | ION live confirmed:")[0] + note
+    cell["verdict"]["DENSE-HETERO"] = with_ion_note(cell["verdict"]["DENSE-HETERO"], " | ION live confirmed: route_exact " + str(het_stats["ion_route_exact_pct"]) + "% (hops); arrivals within 2s on exact routes.")
+    cell["verdict"]["DENSE-HOMOG"] = with_ion_note(cell["verdict"].get("DENSE-HOMOG", ""), " | ION live confirmed: route_exact " + str(hom_stats["ion_route_exact_pct"]) + "%.")
 
     Path(args.cell_out).write_text(json.dumps(cell, indent=1))
     print("updated cell:", json.dumps({k:v for k,v in cell.items() if k in ("verdict","ion_agreement")}, indent=1)[:800])
