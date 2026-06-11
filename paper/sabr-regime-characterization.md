@@ -802,7 +802,11 @@ bundle size: on corpus_v3 (44099 routable dispatches) megabyte-scale
 bundles invert the key-1 winner on 16 to 23% of dispatches and
 kilobyte-scale bundles on essentially none (0 to 12), the rest of the
 apparent divergence being first-byte ties already counted as route
-multiplicity. Both the reference and ION select on first-byte, so the
+multiplicity. Every one of those 44099 routable dispatches carried
+candidates through more than one entry node (multi_entry = 44099), so
+route multiplicity is not a sparse edge case on this corpus: every
+gated comparison selects among genuinely competing paths. Both the
+reference and ION select on first-byte, so the
 closure result holds for the convention the implementations share; the
 last-byte selection the text specifies is implemented by neither, and
 a faithful realization of it is a distinct conformant reading this
