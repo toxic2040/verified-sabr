@@ -24,10 +24,14 @@ at the dispatch second ION reports back.
 
 Result on 1000 generated cislunar contact plans (24 h horizons, 390–430
 contacts each, 4100 route queries): found/none verdicts and earliest-arrival
-times agree exactly on every query (4093 found/found, 7 none/none). Hop
-sequences differ on 3009 queries, all at arrival ties — the model implements
-the standard's first two best-route keys (arrival, hop count) while ION also
-applies the remaining tie-break keys; no divergence falls outside that class.
+times agree exactly with ION 4.1.4 on every query (4093 found/found, 7
+none/none), independent of tie-break. Route selection uses the standard's
+full four-key best-route order (arrival, hop count, latest termination,
+smallest entry node — `Cand.le4`); graded against that four-key optimum the
+returned route is conformant on 3882/4093 dispatches, the 210 key-3 and 1
+key-4 residual deviations being the price of the deployed-practice
+visited-contact list rather than a comparator gap. Per-regime breakdown:
+`paper/sabr-regime-characterization.md`.
 Methodology and ingestion semantics: `docs/algorithm.md` §8–§9. To reproduce
 against any ionrc corpus:
 
@@ -37,9 +41,10 @@ python3 scripts/diffharness/report.py --jsonl <out dir>/diff_results.jsonl \
     --out <out dir>/agreement_report.json
 ```
 
-Planned: optimality of the returned route on nonnegative-OWLT contact plans
-(with the full 4-key tie-break) and loop-freedom characterization for
-multi-node forwarding. See `docs/specs/` for the design.
+Planned: global optimality of the returned route on the lower keys
+(closing the explored-frontier gap; key 1 and four-key frontier-minimality
+are proven) and loop-freedom characterization for multi-node forwarding.
+See `docs/specs/` for the design.
 
 Build: `lake exe cache get && lake build`. The default build includes the
 test modules under `VerifiedSabr/Tests/`, whose `#guard` assertions are

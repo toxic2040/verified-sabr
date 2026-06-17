@@ -753,10 +753,11 @@ Per query (source, destination, t₀), in order:
    a constant OWLT margin (§2.4.2 permits one; the model pins 0, §3.1), the
    measured constant is applied as `arrival_ion = arrival_lean + margin × hops`
    — measured once on a fixture plan, recorded, never fitted per-plan.
-3. **Hop sequence**: reported, not gating. `pickMin` orders by the first two
-   §3.2.8.1.4 keys (arrival, then hop count — see Delta 5); ION implements
-   all four, so residual ties (equal arrival AND equal hop count) may still
-   legitimately differ on termination time or entry node. Hop disagreements
+3. **Hop sequence**: reported, not gating. `pickMin` orders by the full
+   four-key §3.2.8.1.4 order (arrival, hop count, latest termination, smallest
+   entry node — `Cand.le4`, see Delta 5); route differences from ION then sit
+   only at full-tuple ties the standard leaves free or at the visited-list
+   closing gap. Hop disagreements
    at *unequal* arrival are impossible by 2; hop disagreements at equal
    arrival are tabulated as tie-break divergence. Integer light-second plans
    make arrival ties pervasive (owlt-0 intra-lunar contacts), which is why
