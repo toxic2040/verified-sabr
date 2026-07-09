@@ -1,47 +1,42 @@
-# verified-sabr — Graduation package (draft)
+# verified-sabr — claim status and scope
 
-**Status:** ready for owner-initiated public release  
-**Decision recorded:** 2026-06-28 (YES graduate: GitHub + Zenodo, MIT)  
-**This file:** local checklist only — no remote linked until owner GO at push time.
+This project formalizes Schedule-Aware Bundle Routing (CCSDS 734.3-B-1), the
+standardized form of Contact Graph Routing used in delay-tolerant space
+networks, in Lean 4. This document states exactly what is proved, what is
+measured, and what is deliberately not claimed.
 
-## What ships
+## What the project provides
 
-A Lean 4 formalization of Schedule-Aware Bundle Routing (CCSDS 734.3-B-1 /
-Contact Graph Routing practice), with:
+- Executable earliest-arrival route search (`lake exe sabrsearch`) over
+  ION-style contact plans, using exact rational arithmetic.
+- Machine-checked soundness (`routeSearch_sound`): every route the search
+  returns is plan-drawn, adjacent, and window-feasible.
+- Machine-checked earliest-arrival optimality (`routeSearch_optimal`, the
+  T2b result): the returned route's arrival time is optimal under the stated
+  model.
+- A differential harness against ION 4.1.4 (`scripts/diffharness/`):
+  found/none verdicts and earliest-arrival times agree on 4100/4100 route
+  queries across 1000 generated cislunar contact plans, independent of
+  tie-break.
+- An honest residual on full four-key route selection: 3882/4093 dispatches
+  conformant, with the deployed visited-contact-list cost disclosed in the
+  README and the per-regime breakdown in `paper/`.
 
-- Executable earliest-arrival search (`lake exe sabrsearch`)
-- Machine-checked soundness (`routeSearch_sound` / related; `#print axioms`
-  limited to `propext`, `Classical.choice`, `Quot.sound`)
-- Differential harness vs ION 4.1.4 (`scripts/diffharness/`) — 4100/4100
-  found/none + arrival agreement on the published corpus
-- Honest residual on four-key route selection (3882/4093 conformant; visited-
-  contact list cost disclosed in README)
+Both machine-checked theorems reduce to the standard classical axioms only —
+`propext`, `Classical.choice`, `Quot.sound` — re-reported on every build by
+`VerifiedSabr/Tests/Axioms.lean`.
 
-## Public surface checklist
-
-- [ ] Owner voice pass on README (already accurate; confirm tone)
-- [ ] Confirm LICENSE is MIT and headers match
-- [ ] `lake build` clean on a fresh clone
-- [ ] Strip any local paths / operator-only notes from tracked docs
-- [ ] Create GitHub repo (suggested name: `verified-sabr`) under toxic2040 or a
-      percolate-space org
-- [ ] Push `master` (first remote)
-- [ ] Tag `v0.1.0` with the ION-diff numbers frozen in the tag message
-- [ ] Zenodo DOI from the GitHub release (or deposit tarball)
-- [ ] One-line entry on percolate.space /projects with claim-status:
-      `THEOREM (soundness + T2b arrival optimality) · RESULT (ION differential) · not full four-key route-selection optimality`
-
-## Claim language (do not overshoot)
+## Claim language
 
 | Claim | Strength |
 |-------|----------|
 | Returned routes are plan-drawn, adjacent, window-feasible | THEOREM (Lean) |
-| T2b earliest-arrival optimality (under stated model) | THEOREM (Lean; see docs/algorithm.md) |
-| Found/none + earliest arrival match ION 4.1.4 on corpus | RESULT (4100/4100) |
+| T2b earliest-arrival optimality (under the stated model) | THEOREM (Lean; see `docs/algorithm.md`) |
+| Found/none and earliest arrival match ION 4.1.4 on corpus | RESULT (4100/4100) |
 | Full four-key route-selection optimum (arrival, hops, latest termination, smallest entry) | NOT claimed — residual disclosed (3882/4093) |
 | Loop-freedom / multi-node forwarding | Planned, not shipped |
 
-## Build (release gate)
+## Build
 
 ```bash
 lake exe cache get
@@ -50,12 +45,10 @@ lake build
 # python3 scripts/diffharness/compare.py --plans <corpus> --out <out>
 ```
 
-## Deliberately not in this package
+## Deliberately out of scope
 
-- SNTC / TIN claim revival
-- Optimality closing of the explored-frontier gap (tracked in `docs/specs/`)
-- Any dependency on private `perc-engine`
+- Global four-key route-selection optimality (the explored-frontier gap;
+  the design is tracked in `docs/specs/`).
+- Loop-freedom characterization for multi-node forwarding.
 
----
-
-Owner action required to leave local-only: authorize remote + first push.
+License: MIT.
