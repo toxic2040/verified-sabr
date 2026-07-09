@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use verified-sabr, please cite it via the archived Zenodo record."
+title: "verified-sabr: A Lean 4 Formalization of Schedule-Aware Bundle Routing"
+type: software
+authors:
+  - family-names: Councilman
+    given-names: J.
+    orcid: https://orcid.org/0009-0003-6265-5168
+repository-code: https://github.com/toxic2040/verified-sabr
+license: MIT
+version: "0.1.0"
+date-released: "2026-07-08"
+keywords:
+  - formal verification
+  - Lean 4
+  - delay-tolerant networking
+  - contact graph routing
+  - Schedule-Aware Bundle Routing
+  - CCSDS 734.3-B-1

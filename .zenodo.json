@@ -1,0 +1,17 @@
+{
+  "title": "verified-sabr: A Lean 4 Formalization of Schedule-Aware Bundle Routing",
+  "upload_type": "software",
+  "license": "MIT",
+  "creators": [
+    { "name": "Councilman, J.", "orcid": "0009-0003-6265-5168" }
+  ],
+  "keywords": [
+    "formal verification",
+    "Lean 4",
+    "delay-tolerant networking",
+    "contact graph routing",
+    "Schedule-Aware Bundle Routing",
+    "CCSDS 734.3-B-1"
+  ],
+  "description": "A Lean 4 formalization of Schedule-Aware Bundle Routing (CCSDS 734.3-B-1), the standardized form of Contact Graph Routing used in delay-tolerant space networks. It provides an executable earliest-arrival route search over ION-style contact plans with exact rational arithmetic, a machine-checked soundness theorem (every returned route is plan-drawn, adjacent, and window-feasible), a machine-checked earliest-arrival optimality theorem (the T2b result), and a differential harness against ION 4.1.4. Found/none verdicts and earliest-arrival times agree on 4100 of 4100 route queries across 1000 generated cislunar contact plans. Full four-key route selection is conformant on 3882 of 4093 dispatches; the residual is disclosed rather than claimed as optimal. Both machine-checked theorems reduce to the standard classical axioms only (propext, Classical.choice, Quot.sound)."
+}
