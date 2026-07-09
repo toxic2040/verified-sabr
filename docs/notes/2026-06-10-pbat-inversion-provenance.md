@@ -5,7 +5,7 @@ the tracked record, written when an anomaly-log pass found the paper's
 §8 numbers unpinned. The last-byte paragraph (commit f8de26b) cites
 44099 routable dispatches and inversion rates of 16-23% at megabyte
 bundles and 0-12 dispatches at kilobyte bundles, but the script that
-produced them was a sandbox one-off (`~/work/sandbox/swarm/
+produced them was a sandbox one-off (`<sandbox>/swarm/
 measure_pbat.py`, never committed), the numbers appear in no
 `docs/notes/` entry, and no output artifact existed in the repository -
 Appendix B's claim that the draft's numbers are drawn verbatim from the

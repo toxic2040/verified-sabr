@@ -13,7 +13,7 @@ frozen profile, "awaiting live validation").
   plans (`dsn_real_v1_plan_20260406` .. `_20260605`).
 - Predictions: `out_s5/predictions.jsonl` (verified-sabr search output).
 - Command:
-  `python3 scripts/diffharness/ion_node.py validate --corpus ~/work/repos/dsn-scraper/out/dsn_real_v1 --predictions out_s5/predictions.jsonl --out out_s5/ion_live.jsonl`
+  `python3 scripts/diffharness/ion_node.py validate --corpus <dsn-scraper>/out/dsn_real_v1 --predictions out_s5/predictions.jsonl --out out_s5/ion_live.jsonl`
 - Output: `out_s5/ion_live.jsonl` (8967 rows = 8912 dispatch rows + 55
   `plan_done` markers). `out_s5/` is a differential-run byproduct and stays
   gitignored; this note is the tracked record of the outcome.

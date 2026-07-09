@@ -10,7 +10,7 @@ on restart. Writes each plan's updated row immediately on completion.
 Usage (HETERO focus per registered MIXED cell):
   python scripts/diffharness/dense2x2_ion_fold.py \
       --results out_s5/dense2x2_HETERO_results.jsonl \
-      --corpus /home/toxic2040/work/repos/cislunar-lab/out/dense2x2_v1/HETERO \
+      --corpus <cislunar-lab>/out/dense2x2_v1/HETERO \
       --out out_s5/dense2x2_HETERO_results_ion.jsonl \
       [--limit-plans 10]
 

@@ -11,12 +11,12 @@ The launch was a detached sequential wrapper (c8 first, then c2) so the prior sh
 ```sh
 { /usr/bin/time -p python3 scripts/diffharness/evl_adjudicate.py \
     --results out_evl_relay/relay_c8.jsonl \
-    --corpus /home/toxic2040/work/repos/cislunar-lab/out/corpus_v3 \
+    --corpus <cislunar-lab>/out/corpus_v3 \
     --depth 5 --contention 8.0 --traffic relay \
     --out out_evl_relay/relay_c8_adj5.jsonl ; \
   /usr/bin/time -p python3 scripts/diffharness/evl_adjudicate.py \
     --results out_evl_relay/relay_c2.jsonl \
-    --corpus /home/toxic2040/work/repos/cislunar-lab/out/corpus_v3 \
+    --corpus <cislunar-lab>/out/corpus_v3 \
     --depth 5 --contention 2.0 --traffic relay \
     --out out_evl_relay/relay_c2_adj5.jsonl ; } 2>&1 | tail -12
 ```
