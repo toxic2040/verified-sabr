@@ -1,5 +1,7 @@
 # verified-sabr
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21273543.svg)](https://doi.org/10.5281/zenodo.21273543)
+
 A Lean 4 formalization of Schedule-Aware Bundle Routing (CCSDS 734.3-B-1),
 the standardized form of Contact Graph Routing used in delay-tolerant space
 networks.

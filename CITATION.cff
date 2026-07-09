@@ -10,6 +10,14 @@ repository-code: https://github.com/toxic2040/verified-sabr
 license: MIT
 version: "0.1.0"
 date-released: "2026-07-08"
+doi: 10.5281/zenodo.21273543
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.21273543
+    description: "Concept DOI (all versions)"
+  - type: doi
+    value: 10.5281/zenodo.21273544
+    description: "Version DOI (v0.1.0)"
 keywords:
   - formal verification
   - Lean 4
