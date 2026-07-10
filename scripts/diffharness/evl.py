@@ -27,21 +27,28 @@ character of that mechanism on realistic structure.
 Model, sections cited inline: candidate routes are no-reuse chains (the
 3.2.6.10 generation class; at the selection optimum the class choice is
 provably invisible) enumerated to a depth cap with truncations counted.
-Arrival threading per 3.2.6.3-7: first-byte transmission = max(arrival,
-contact start) threaded forward, last-byte = first-byte + EVC/rate, PBAT
-= final contact's last-byte arrival (uniform-rate plans reduce to the
-audited first-byte order; mixed-rate plans do not, so the full
-semantics are implemented). Volume per 3.2.6.8: effective stop = min of
-own and successors' stops, EVL = min(MTV, rate x effective duration),
-RVL = min EVL over the route. Filters: 3.2.6.9 e) expiration vacuous
-here, f) depleted, g) RVL < EVC with fragmentation not permitted (the
-binding form). Charge per 3.2.8.1.2 at enqueue: every contact of the
-stored route, EVC = size + max(0.03 x size, 100) per 1.4. One priority
-level (3.2.6.8.1 NOTE's single-level option). Selection: keys 1-4 on
-(PBAT, hops, termination desc, entry numeric asc); the stored object is
-the canonical minimum (ledger A) or maximum (ledger B) of the
-tuple-equal optimum class by contact-id sequence - the two extreme
-conformant tie resolutions, bracketing every faithful implementation.
+Arrival threading per 3.2.6.3-7: each contact's first-byte transmission
+= max(contact start, the prior contact's last-byte arrival), last-byte
+= first-byte + EVC/rate, PBAT = final contact's last-byte arrival.
+Volume per 3.2.6.8: effective start = the contact's first-byte
+transmission time (3.2.6.8.5), effective stop = min of own and
+successors' stops, EVL = min(MTV, rate x effective duration), RVL = min
+EVL over the route. Filters: 3.2.6.9 e) expiration vacuous here, f)
+depleted, g) RVL < EVC with fragmentation not permitted (the binding
+form). Charge per 3.2.8.1.2 at enqueue: every contact of the stored
+route, EVC = size + max(0.03 x size, 100) per 1.4. One priority level
+(3.2.6.8.1 NOTE's single-level option). Selection: keys 1-4 on (PBAT,
+hops, termination desc, entry numeric asc); the stored object is the
+canonical minimum (ledger A) or maximum (ledger B) of the tuple-equal
+optimum class by contact-id sequence - the two extreme conformant tie
+resolutions, bracketing every faithful implementation.
+
+Through v0.1.1 this file threaded first-byte arrival between hops and
+used scheduled starts in the EVL duration - two operationalizations the
+2026-07-10 volume-axis differential measured against the letter of
+3.2.6.3/3.2.6.8.5. v0.1.2 implements the letter; the reconciliation
+that requantified the corpus numbers under it is recorded in the
+conformance note (docs/notes/2026-07-10-cgr-conformance-note.md).
 
 Traffic per plan: the plan's query pairs, K bundles each, dispatch
 times staggered across the horizon, bundle size set so K bundles sum to
@@ -77,16 +84,19 @@ def evc(size):
     return size + max(size * 3 // 100, 100)
 
 
-def route_rvl(contacts, path, mtv):
-    """3.2.6.8.6-10: effective stop is clipped by successor stops; EVL =
-    min(MTV, rate x effective duration); RVL = min EVL."""
+def route_rvl(contacts, path, firsts, mtv):
+    """3.2.6.8.5-10: effective start is the contact's first-byte
+    transmission time (firsts[k], threaded per 3.2.6.3); effective stop
+    is clipped by successor stops; EVL = min(MTV, rate x effective
+    duration); RVL = min EVL."""
     rvl = None
     suffix_stop = None
-    for i in reversed(path):
+    for k in range(len(path) - 1, -1, -1):
+        i = path[k]
         f, to, s, e, owlt, rate = contacts[i]
         stop = e if suffix_stop is None or e < suffix_stop else suffix_stop
         suffix_stop = stop
-        dur = stop - s
+        dur = stop - firsts[k]
         if dur < 0:
             dur = 0
         evl = mtv[i] if mtv[i] < rate * dur else rate * dur
@@ -98,19 +108,22 @@ def route_rvl(contacts, path, mtv):
 def select(contacts, by_from, src, dst, t0, evc_b, mtv, depth_cap,
            max_rate):
     """Keys-best volume-live candidate plus the canonical extremes of
-    its tuple-tie class, by branch-and-bound: a prefix is pruned when
-    its optimistic PBAT (first-byte arrival so far plus the radiation
-    latency at the plan's best rate; owlt >= 0) already exceeds the
-    best live route's PBAT - such a completion loses at key 1 and can
-    neither be selected nor stored. Volume filters 3.2.6.9 f)/g)
-    applied at the terminal (no-fragmentation form, RVL >= EVC).
+    its tuple-tie class, by branch-and-bound under 3.2.6.3 last-byte
+    threading: each contact's first-byte transmission = max(contact
+    start, prior contact's last-byte arrival); PBAT = final contact's
+    last-byte arrival. A prefix is pruned when its optimistic PBAT (the
+    node's earliest first-byte time plus the radiation latency at the
+    plan's best rate; owlt >= 0) already exceeds the best live route's
+    PBAT - such a completion loses at key 1 and can neither be selected
+    nor stored. Volume filters 3.2.6.9 f)/g) applied at the terminal
+    with 3.2.6.8.5 effective starts (no-fragmentation form, RVL >= EVC).
     Returns (best_tuple, path_min, path_max, truncated)."""
     best = [None]		# (pbat, hops, -term, entry)
     tie = []
     truncated = [False]
     floor = evc_b / max_rate
 
-    def dfs(node, t_first, depth, term, entry, used, path):
+    def dfs(node, t_first, depth, term, entry, used, path, firsts):
         if depth >= depth_cap:
             truncated[0] = True
             return
@@ -123,23 +136,27 @@ def select(contacts, by_from, src, dst, t0, evc_b, mtv, depth_cap,
             tx_first = t_first if t_first > s else s
             if tx_first > e:
                 continue
-            arr_first = tx_first + owlt
+            # 3.2.6.4/6: last-byte arrival = first-byte tx + EVC/rate + owlt
+            arr_last = tx_first + evc_b / rate + owlt
             nterm = e if term is None or e < term else term
             nentry = entry if entry is not None else to
             npath = path + (i,)
+            nfirsts = firsts + (tx_first,)
             if to == dst:
-                arr_last = tx_first + evc_b / rate + owlt
                 key = (arr_last, depth + 1, -nterm, nentry)
                 if (best[0] is None or key <= best[0]) \
-                        and route_rvl(contacts, npath, mtv) >= evc_b:
+                        and route_rvl(contacts, npath, nfirsts,
+                                      mtv) >= evc_b:
                     if best[0] is None or key < best[0]:
                         best[0] = key
                         tie.clear()
                     tie.append(npath)
-            dfs(to, arr_first, depth + 1, nterm, nentry,
-                used | {i}, npath)
+            # 3.2.6.3: the next contact's first byte waits for the full
+            # bundle - thread the last-byte arrival
+            dfs(to, arr_last, depth + 1, nterm, nentry,
+                used | {i}, npath, nfirsts)
 
-    dfs(src, t0, 0, None, None, frozenset(), ())
+    dfs(src, t0, 0, None, None, frozenset(), (), ())
     if best[0] is None:
         return None, None, None, truncated[0]
     b = best[0]
