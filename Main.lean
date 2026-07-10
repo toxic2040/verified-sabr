@@ -16,7 +16,7 @@ def main (args : List String) : IO UInt32 := do
       let cp := buildPlan ((plan.splitOn "\n").filterMap parseLine?)
       if !checkPlanNonnegOwlt cp then do
         IO.eprintln "error: plan has a negative-OWLT contact (violates PlanNonnegOwlt); T2 optimality and dependent results require nonnegative OWLT [algorithm.md §10.3]"
-        pure 3
+        return 3
       for out in runQueries cp ((queries.splitOn "\n").filter (· ≠ "")) do
         IO.println out
       pure 0

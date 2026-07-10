@@ -8,8 +8,8 @@ authors:
     orcid: https://orcid.org/0009-0003-6265-5168
 repository-code: https://github.com/toxic2040/verified-sabr
 license: MIT
-version: "0.1.0"
-date-released: "2026-07-08"
+version: "0.1.1"
+date-released: "2026-07-10"
 doi: 10.5281/zenodo.21273543
 identifiers:
   - type: doi
