@@ -1,8 +1,10 @@
 # What Schedule-Aware Bundle Routing pins down, and what it defers: a regime-indexed characterization of CCSDS 734.3-B-1
 
-J. Councilman — draft v0.1, 2026-06-05. Working copy; every number in
-this draft is reproducible from the repository's committed harness and
-the corpora described in §2.
+J. Councilman — draft v0.3, 2026-07-11 (v0.1 2026-06-05; the volume
+layer is requantified under the letter semantics of the v0.1.2
+harness, §7). Working copy; every number in this draft is reproducible
+from the repository's committed harness and the corpora described
+in §2.
 
 ## Abstract
 
@@ -32,16 +34,19 @@ of traffic shape. We construct a witness in which two conformant
 systems disagree on whether a bundle is deliverable at all, then show
 in a two-ledger replay rigged in amplification's favor (contention to
 eight times the tightest pass volume, charges that never decay) that
-the divergence never fires under endpoint-sourced traffic, for a
+under endpoint-sourced traffic the divergence almost never fires - 3
+of 1000 cislunar plans at contention 2.0, none at 8.0 - for a
 structural reason: the route multiplicity that creates divergent state
 is the same multiplicity that supplies the tuple-equivalent fallbacks
 absorbing it. The absorption is source-relative, and that is its
 limit: widen the source set to relay nodes - the natural shape for
 mesh deployments, and the witness's own geometry - and the channel
-fires on 36 of 1000 cislunar plans at contention 2.0 and 82 at 8.0
-(depth-4-adjudicated), every divergence an entry split in which the
+fires on 26 of 1000 cislunar plans at contention 2.0 and 40 at 8.0
+(depth-5-adjudicated), all but one an entry split in which the
 two conformant systems
-enqueue the same bundle to different neighbors - while the real-DSN
+enqueue the same bundle to different neighbors (the one exception a
+found/none counted in the rate but flagged, its route-less side still
+truncating at the adjudication depth) - while the real-DSN
 corpus, relay-sourced under the same protocol, opens residue on 37 of
 55 plans and fires on none. Along the way we show that which of the standard's four
 selection keys does the deciding is a property of the contact plan's
@@ -97,10 +102,11 @@ are flagged in §8, not closed here. The witness of §7 is the
 necessity half of that claim -
 it exhibits the one further channel the text permits, divergence
 through volume state, as real - and the field measurement is
-two-sided: under endpoint-sourced traffic the channel never fires,
-for a mechanism-level reason, and under relay-sourced traffic it
-fires at a measured rate, which makes the inertness a traffic regime
-rather than a property of the channel. Fix the four, pin the stored
+two-sided: under endpoint-sourced traffic the channel fires on 3 of
+1000 plans at one contention and none at the other, held down by a
+mechanism-level absorption, and under relay-sourced traffic it fires
+an order of magnitude more often, which makes the fire rate a
+property of traffic regime rather than of the channel. Fix the four, pin the stored
 tie representative, and two conformant
 implementations are behaviorally identical across the measured
 corpora, traffic shapes, and contention levels, in
@@ -156,12 +162,14 @@ Concretely, this paper establishes:
   shows the path is real: two conformant systems disagree on
   deliverability. The
   replay, with every knob set in amplification's favor, shows the
-  channel inert under endpoint-sourced traffic - the absorbing
-  mechanism named, both enumeration-cap exposures
-  closed structurally rather than by sampling - and live under
-  relay-sourced traffic on the quantized mesh, firing on 36 to 82 of
-  1000 plans as contention runs 2.0 to 8.0 (depth-4-adjudicated),
-  every divergence an entry split - with the real-DSN corpus absorbing
+  channel rare under endpoint-sourced traffic (3 of 1000 plans at
+  contention 2.0, none at 8.0) - the absorbing
+  mechanism named, the enumeration-cap exposures
+  closed by depth-5 adjudication with one found/none row flagged
+  rather than claimed - and live under
+  relay-sourced traffic on the quantized mesh, firing on 26 to 40 of
+  1000 plans as contention runs 2.0 to 8.0 (depth-5-adjudicated),
+  all but that one row entry splits - with the real-DSN corpus absorbing
   the same relay protocol (37 of 55 plans open residue, none fire).
   Permitted, with firing indexed by traffic shape and plan structure,
   and a one-line fix (pin the stored representative): the set of
@@ -610,7 +618,7 @@ charged: the MTVs decremented are those of the stored route object's
 contacts, so the residue becomes diverging volume state. Which is the
 volume layer's question.
 
-## 7. The volume layer: wash-out, with a witness
+## 7. The volume layer: regime-indexed firing, with a witness
 
 Action-determinism leaves exactly one path from representational
 divergence to behavioral divergence. Queue backlog cannot carry it
@@ -630,7 +638,8 @@ and uncharged remaining volume, is routable under one ledger and
 unroutable under the other. Two systems, both conformant at every
 step, disagree on deliverability.
 
-**The field washes out, under conditions rigged against wash-out.**
+**The field nearly washes out, under conditions rigged against
+wash-out.**
 The experiment turns every knob in amplification's favor: contention
 to eight times the tightest pass volume, charges that never decay
 (route expiry could only reduce amplification), ledgers charged along
@@ -640,30 +649,53 @@ implementation pair), and full volume semantics - last-byte threading
 per §3.2.6.3-7, successor-clipped effective stops and MTV/EVL/RVL per
 §3.2.6.8, the no-fragmentation filters per §3.2.6.9 f)/g), §1.4
 overhead. Under those conditions, on corpus_v3 at contention 2.0:
-2 residue events, both washed out. At contention 8.0: 26 plans carry
-32 residue events at the depth-3 cap, all washed out but one found/none
-cap artifact that resolves at depth 4 by found-verdict monotonicity
-(below), leaving every action stream identical end to end. On dsn_real_v1: zero residue events at all -
+45 plans carry 48 residue events and three diverge - entry splits,
+stable through depth-5 adjudication. At contention 8.0: 67 plans
+carry 76 residue events, every one washed out. On dsn_real_v1: zero
+residue events at either contention -
 the endpoint dispatch set meets no full-tuple ties, so nothing is
 stored divergently. The absence belongs to the dispatch set, not the
 corpus: relay-sourced dispatch opens ties on these same plans
-(below). The divergence the standard permits did not occur on
-endpoint-sourced traffic under stress exceeding any realistic
-deployment, and the reason is structural, not statistical: the
+(below). The wash-out mechanism is structural, not statistical - the
 multiplicity that creates residue is the same multiplicity that
 supplies tuple-equivalent fallbacks to absorb it, and endpoint
-traffic does not produce the witness geometry (a leg-sourced bundle
-aimed into a charge gap).
+traffic rarely produces the witness geometry (a bundle aimed into a
+charge gap) - but its coverage is not total: on three plans in a
+thousand, at the lower contention, divergently charged ledgers
+survive absorption long enough to flip a later selection's entry, and
+the channel fires without relay sourcing (the per-plan anatomy of
+those three escapes is not traced here). Under stress exceeding any
+realistic deployment, endpoint-sourced traffic fires the divergence
+the standard permits rarely - not never.
 
-**Both enumeration-cap exposures are closed.** The replay
+These are the letter's numbers. Through v0.1.1 the replay
+operationalized two clauses - first-byte inter-hop threading and
+scheduled-start effective durations - and under that reading the
+endpoint runs were entirely quiet (2 residue events at contention
+2.0, 32 at 8.0, all washed but one depth-3 cap artifact) while the
+relay runs fired on 36 and 82 plans. A 2026-07-10 reconciliation
+implemented the letter exactly (last-byte inter-hop threading per
+§3.2.6.3, first-byte-transmission effective starts per §3.2.6.8.5),
+requantified every corpus with the protocol otherwise frozen, and
+shipped as the v0.1.2 harness. The witness and the dsn_real profile
+transferred unchanged; every fire count moved; the endpoint-inertness
+verdict did not survive. The dated notes carry the operationalized
+history.
+
+**Both enumeration-cap exposures are closed, one row flagged.** The
+replay
 enumerates candidates to a depth cap, truncations counted, which
 exposes two artifact channels; each is closed below. A
 found/none divergence whose "none" side truncated could be a cap
-artifact - the single depth-3 candidate was exactly that, its none
-side holding a live four-hop fallback - and found-verdicts are
-monotone in enumeration depth, so once adjudication at depth 4 shows
+artifact - one of the relay run's two found/nones at contention 2.0
+was exactly that, dissolving under the deeper cap - and
+found-verdicts are
+monotone in enumeration depth, so once adjudication shows
 both sides routing, that divergence type cannot reappear at any
-depth. An entry divergence could in principle hide above the cap (a
+depth. The other found/none persists at depth 5 with its route-less
+side still truncating; it is counted in the fire rate and flagged
+rather than claimed cap-proof. An entry divergence could in principle
+hide above the cap (a
 deeper route, earlier in projected arrival, live under one ledger
 only); but the key-1 oracle is depth-free, so on a uniform-rate plan
 the volume-unconstrained optimal PBAT is computable without any cap,
@@ -671,10 +703,9 @@ and a dispatch whose selections already sit at that optimum cannot be
 beaten at key 1 by any deeper route, while deeper routes lose key 2
 at equal PBAT. That bound is exact only on uniform-rate plans, and corpus_v3 is
 mixed-rate, so its `pbat_gap` witness is inert and the structural
-impossibility does not transfer; here the endpoint shows no entry
-divergence at the depth-3 cap, and the depth-4 re-adjudication below -
-which dissolves 4 of 40 relay splits as cap artifacts - confirms the
-cap is not masking divergence empirically.
+impossibility does not transfer; here depth-5 adjudication of every
+diverged plan, relay and endpoint alike, stands in empirically: no
+entry split dissolves at either contention.
 This is the same cap-killing move used throughout the program (§2.5).
 
 **The absorption is source-relative, and relay-sourced traffic
@@ -686,19 +717,22 @@ shape; relay nodes source their own telemetry in any mesh deployment.
 Widening the replay's source set to every node (same destinations,
 same staggered schedule, same two-ledger discipline; 1728 dispatches
 per plan against the endpoint runs' 144) fires the channel on
-corpus_v3: at contention 2.0, 845 of 1000 plans carry residue events
-and 40 diverge at the depth-3 cap; at contention 8.0, 842 carry
-residue and 82 diverge.
-Every divergence is an entry split - the two conformant ledgers
-enqueue the same bundle to different neighbors; found-against-none
-never occurs at either contention - and the diverging dispatches
+corpus_v3: at contention 2.0, 896 of 1000 plans carry residue events
+and 27 diverge at the depth-3 cap; at contention 8.0, 878 carry
+residue and 40 diverge.
+All 40 stress-contention divergences and 25 of the 27 at contention
+2.0 are entry splits - the two conformant ledgers
+enqueue the same bundle to different neighbors - and the diverging
+dispatches
 source across the whole node set, because once leg-sourced charges
-open a gap, any later dispatch can land in it. Depth-4 adjudication
+open a gap, any later dispatch can land in it; the remaining two are
+the found/nones of the cap paragraph above, one dissolved as a cap
+artifact, one counted and flagged. Depth-5 adjudication
 of every diverged plan, by the endpoint runs' own protocol, confirms
-the splits are not cap artifacts: all 82 stress-contention
-divergences persist, and 36 of the 40 at contention 2.0 persist with
-4 dissolving under the deeper cap. The cap-robust rates are 3.6% and
-8.2% of plans.
+the splits are not cap artifacts: all 40 stress-contention
+divergences persist, and 26 of the 27 at contention 2.0 persist with
+1 dissolving under the deeper cap. The cap-robust rates are 2.6% and
+4.0% of plans.
 
 The same relay protocol on dsn_real_v1 opens the channel's
 precondition and not the channel: 37 of 55 plans carry residue events
@@ -709,8 +743,9 @@ out - zero divergences at contention 2.0 and at 8.0, with the residue
 profile identical across the two contentions, as it should be: ties
 are a plan-and-dispatch property, and contention scales only the
 charge that lands on them. The firing is therefore doubly
-regime-indexed: by traffic shape (endpoint sourcing never fires it)
-and by plan structure (the quantized mesh fires under relay sourcing;
+regime-indexed: by traffic shape (endpoint sourcing fires it an order
+of magnitude more rarely than relay sourcing)
+and by plan structure (the quantized mesh fires under both sourcings;
 the real deep-space corpus absorbs the same protocol - presumably
 through the same tuple-equivalent fallbacks, though the per-event
 absorption anatomy is not traced here).
@@ -720,11 +755,13 @@ channel is the fifth deferred point, and it is textual like the
 others: §3.2.8.1.4 a) 4) resolves full-tuple ties "arbitrarily,"
 §3.2.8.1.2 charges the arbitrarily-stored object, and the pair is a
 conformant divergence channel whose firing is regime-indexed by
-traffic shape, plan structure, and contention - zero firings under
-endpoint-sourced traffic at any measured contention, by an absorption
-mechanism that is source-relative; 36 to 82 of 1000 quantized-mesh
+traffic shape, plan structure, and contention - 3 of 1000 plans under
+endpoint-sourced traffic at contention 2.0 and none at 8.0, held down
+by an absorption
+mechanism that is source-relative; 26 to 40 of 1000 quantized-mesh
 plans under relay-sourced traffic as contention runs 2.0 to 8.0,
-depth-4-adjudicated entry splits all; zero of 55 real-DSN plans under
+depth-5-adjudicated, entry splits all but one flagged found/none;
+zero of 55 real-DSN plans under
 the same relay protocol, every one of their 4,785 relay-opened
 residue events absorbed. The fix
 costs what the other four cost: pin the stored representative at
@@ -733,8 +770,9 @@ bracket the conformant extremes). Fix the four of §4 and pin the
 tie, and two conformant implementations of this standard are
 behaviorally identical on every corpus, traffic shape, and
 contention level measured, in selection and in delivery. Leave the
-tie arbitrary, as the text does, and relay-sourced traffic under
-load realizes the divergence the witness constructs. The residual
+tie arbitrary, as the text does, and traffic under load - relay-
+sourced at measured rates, endpoint-sourced rarely - realizes the
+divergence the witness constructs. The residual
 reliability risk is textual, not algorithmic.
 
 ## 8. Limitations
@@ -818,7 +856,7 @@ A reader of a result this null-shaped - "the implementations were
 never the risk" - is owed an account of why the conclusion is not a
 story fitted to the data. The account is that the program tried,
 repeatedly and by design, to break its own claims, and the record of
-those attempts is the evidence. Seven times the object under
+those attempts is the evidence. Eight times the object under
 measurement dissolved when a control built against our own hypothesis
 fired: the reference could not certify itself from inside its own
 frame (caught by the strict-superset oracle requirement); a
@@ -836,7 +874,12 @@ experiment built in response to an external review, the absorption
 mechanism having been source-relative all along (§7); and the dense
 cell's registered HETERO anchor failed at its own threshold, the miss
 exposing a mechanism - window starts regenerating arrival degeneracy -
-that the registered story had no room for (§6.1). Each catch came from a
+that the registered story had no room for (§6.1); and the replay
+harness's own operationalized reading of the volume clauses fell to a
+strict-letter reconciliation replay - two clause-level corrections
+that moved every fire count and refuted the endpoint-inertness
+verdict, the witness and the real-DSN profile transferring unchanged
+(§7). Each catch came from a
 pre-registered prediction, a deliberately stronger oracle frame, or a
 provenance check - instruments built to surface exactly the failure
 they surfaced.
@@ -853,11 +896,14 @@ priorities, fragmentation, arithmetic tolerance - were scoped out, not
 survived, and §8 marks that boundary explicitly. For CCSDS
 734.3-B-1 the surviving characterization is: a selection order that
 is total and precise; action-deterministic at every tie it cannot
-break; settled through the volume layer under endpoint-sourced traffic at
+break; nearly settled through the volume layer under endpoint-sourced
+traffic at
 stress beyond realistic deployment, where the fifth divergence channel
-- the route object stored at full-tuple ties - is inert there by an
-absorption mechanism but fires under relay-sourced traffic at measured
-rates (36 to 82 of 1000 quantized-mesh plans, depth-4-adjudicated;
+- the route object stored at full-tuple ties - is held to 3 of 1000
+plans at one contention and none at the other by an
+absorption mechanism but fires under relay-sourced traffic at an
+order of magnitude higher
+rates (26 to 40 of 1000 quantized-mesh plans, depth-5-adjudicated;
 zero of 55 real-DSN plans, all relay-opened residue absorbed); and
 ranging over a candidate list, a margin value, a route class, and a
 graph that the text leaves to its implementers, its operators, and in
@@ -941,7 +987,12 @@ before any grading pass); the slack-sweep registration and per-level
 reports under `out_s5/slack_sweep_predictions.json` and `out_slack/`
 (corpus generator in cislunar-lab, `run_slack_corpus.py`);
 per-corpus reports under `out_diff_v3/` and
-`out_s5/`, and the volume-replay relay runs with their depth-4
-adjudications under `out_evl_relay/` (corpus_v3 and dsn_real_v1, both
-contentions); the standalone acyclicity erratum and the working notes
+`out_s5/`, and the letter-semantics volume-replay matrix with its
+depth-5 adjudications under `out_evl_relay/` (`*_letter*`: corpus_v3
+and dsn_real_v1, relay- and endpoint-sourced, both contentions, with
+the number-to-artifact provenance index in
+`docs/notes/2026-07-11-letter-volume-report-provenance.md`; the
+operationalized-era relay runs and their adjudications stand beside
+them as history); the standalone acyclicity erratum and the working
+notes
 (`docs/notes/`) from which this draft's numbers are drawn verbatim.
