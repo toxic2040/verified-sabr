@@ -1,0 +1,43 @@
+{
+ "plans": 1000,
+ "errors": 0,
+ "plans_with_residue_events": 45,
+ "residue_events_total": 48,
+ "plans_diverged": 3,
+ "diverged_entry": 3,
+ "diverged_found_none": 0,
+ "plans_residue_washed_out": 42,
+ "truncated_enumerations": 141157,
+ "first_divergences": [
+  {
+   "plan": "lunanet_baseline_v2_plan_000080",
+   "n": 29,
+   "type": "entry",
+   "src": "COMSAT-1",
+   "dst": "MALAPERT",
+   "t0": 17280,
+   "entry_a": 7,
+   "entry_b": 1
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000083",
+   "n": 29,
+   "type": "entry",
+   "src": "COMSAT-1",
+   "dst": "MALAPERT",
+   "t0": 17280,
+   "entry_a": 4,
+   "entry_b": 7
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000907",
+   "n": 71,
+   "type": "entry",
+   "src": "COMSAT-1",
+   "dst": "MALAPERT",
+   "t0": 41472,
+   "entry_a": 1,
+   "entry_b": 10
+  }
+ ]
+}

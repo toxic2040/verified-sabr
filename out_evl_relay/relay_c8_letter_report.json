@@ -1,0 +1,263 @@
+{
+ "plans": 1000,
+ "errors": 0,
+ "plans_with_residue_events": 878,
+ "residue_events_total": 2384,
+ "plans_diverged": 40,
+ "diverged_entry": 40,
+ "diverged_found_none": 0,
+ "plans_residue_washed_out": 838,
+ "truncated_enumerations": 1377783,
+ "first_divergences": [
+  {
+   "plan": "lunanet_baseline_v2_plan_000021",
+   "n": 1718,
+   "type": "entry",
+   "src": "PATHFINDER",
+   "dst": "GOLDSTONE",
+   "t0": 82944,
+   "entry_a": 5,
+   "entry_b": 6
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000056",
+   "n": 156,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "GOLDSTONE",
+   "t0": 10368,
+   "entry_a": 5,
+   "entry_b": 8
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000071",
+   "n": 341,
+   "type": "entry",
+   "src": "NAVSAT-3",
+   "dst": "MALAPERT",
+   "t0": 17280,
+   "entry_a": 11,
+   "entry_b": 7
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000073",
+   "n": 1695,
+   "type": "entry",
+   "src": "NAVSAT-1",
+   "dst": "LLO-1",
+   "t0": 82944,
+   "entry_a": 4,
+   "entry_b": 2
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000085",
+   "n": 300,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "GOLDSTONE",
+   "t0": 17280,
+   "entry_a": 5,
+   "entry_b": 6
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000098",
+   "n": 1118,
+   "type": "entry",
+   "src": "NAVSAT-1",
+   "dst": "GOLDSTONE",
+   "t0": 55296,
+   "entry_a": 4,
+   "entry_b": 2
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000171",
+   "n": 767,
+   "type": "entry",
+   "src": "NAVSAT-2",
+   "dst": "MALAPERT",
+   "t0": 38016,
+   "entry_a": 8,
+   "entry_b": 7
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000172",
+   "n": 1481,
+   "type": "entry",
+   "src": "NAVSAT-1",
+   "dst": "MALAPERT",
+   "t0": 72576,
+   "entry_a": 11,
+   "entry_b": 10
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000179",
+   "n": 1628,
+   "type": "entry",
+   "src": "NAVSAT-2",
+   "dst": "GOLDSTONE",
+   "t0": 79488,
+   "entry_a": 4,
+   "entry_b": 12
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000234",
+   "n": 164,
+   "type": "entry",
+   "src": "GOLDSTONE",
+   "dst": "MALAPERT",
+   "t0": 10368,
+   "entry_a": 10,
+   "entry_b": 9
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000261",
+   "n": 516,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "GOLDSTONE",
+   "t0": 27648,
+   "entry_a": 2,
+   "entry_b": 12
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000328",
+   "n": 741,
+   "type": "entry",
+   "src": "LLO-1",
+   "dst": "CANBERRA",
+   "t0": 38016,
+   "entry_a": 3,
+   "entry_b": 4
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000377",
+   "n": 514,
+   "type": "entry",
+   "src": "COMSAT-1",
+   "dst": "MALAPERT",
+   "t0": 27648,
+   "entry_a": 9,
+   "entry_b": 8
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000379",
+   "n": 300,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "GOLDSTONE",
+   "t0": 17280,
+   "entry_a": 5,
+   "entry_b": 10
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000428",
+   "n": 613,
+   "type": "entry",
+   "src": "NAVSAT-1",
+   "dst": "GATEWAY",
+   "t0": 31104,
+   "entry_a": 4,
+   "entry_b": 1
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000450",
+   "n": 796,
+   "type": "entry",
+   "src": "CANBERRA",
+   "dst": "MALAPERT",
+   "t0": 41472,
+   "entry_a": 8,
+   "entry_b": 9
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000468",
+   "n": 485,
+   "type": "entry",
+   "src": "NAVSAT-3",
+   "dst": "MALAPERT",
+   "t0": 24192,
+   "entry_a": 7,
+   "entry_b": 11
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000481",
+   "n": 876,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "GOLDSTONE",
+   "t0": 44928,
+   "entry_a": 2,
+   "entry_b": 8
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000523",
+   "n": 953,
+   "type": "entry",
+   "src": "GOLDSTONE",
+   "dst": "GATEWAY",
+   "t0": 48384,
+   "entry_a": 3,
+   "entry_b": 10
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000540",
+   "n": 1705,
+   "type": "entry",
+   "src": "NAVSAT-3",
+   "dst": "GATEWAY",
+   "t0": 82944,
+   "entry_a": 4,
+   "entry_b": 1
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000573",
+   "n": 732,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "GOLDSTONE",
+   "t0": 38016,
+   "entry_a": 2,
+   "entry_b": 8
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000583",
+   "n": 174,
+   "type": "entry",
+   "src": "MADRID",
+   "dst": "MALAPERT",
+   "t0": 10368,
+   "entry_a": 11,
+   "entry_b": 10
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000630",
+   "n": 303,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "MALAPERT",
+   "t0": 17280,
+   "entry_a": 2,
+   "entry_b": 10
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000637",
+   "n": 86,
+   "type": "entry",
+   "src": "GATEWAY",
+   "dst": "MADRID",
+   "t0": 6912,
+   "entry_a": 2,
+   "entry_b": 5
+  },
+  {
+   "plan": "lunanet_baseline_v2_plan_000657",
+   "n": 557,
+   "type": "entry",
+   "src": "NAVSAT-3",
+   "dst": "MALAPERT",
+   "t0": 27648,
+   "entry_a": 7,
+   "entry_b": 11
+  }
+ ]
+}

@@ -1,0 +1,12 @@
+{
+ "plans": 55,
+ "errors": 0,
+ "plans_with_residue_events": 37,
+ "residue_events_total": 4785,
+ "plans_diverged": 0,
+ "diverged_entry": 0,
+ "diverged_found_none": 0,
+ "plans_residue_washed_out": 37,
+ "truncated_enumerations": 716366,
+ "first_divergences": []
+}
