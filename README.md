@@ -43,10 +43,13 @@ python3 scripts/diffharness/report.py --jsonl <out dir>/diff_results.jsonl \
     --out <out dir>/agreement_report.json
 ```
 
-Planned: global optimality of the returned route on the lower keys
-(closing the explored-frontier gap; key 1 and four-key frontier-minimality
-are proven) and loop-freedom characterization for multi-node forwarding.
-See `docs/specs/` for the design.
+Key-1 earliest-arrival optimality is proven (`routeSearch_optimal`); four-key
+frontier-minimality is proven for the explored frontier. Key-2 *global*
+optimality of the returned route is known false for the visited-set search
+(§8.3 witness; see `docs/algorithm.md`) — not a planned deliverable. Residual
+out of scope: full four-key route-selection optimality beyond the explored
+frontier, and loop-freedom characterization for multi-node forwarding.
+See `docs/specs/` and `GRADUATION.md`.
 
 Build: `lake exe cache get && lake build`. The default build includes the
 test modules under `VerifiedSabr/Tests/`, whose `#guard` assertions are
