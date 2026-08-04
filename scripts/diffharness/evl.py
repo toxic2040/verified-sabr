@@ -332,6 +332,21 @@ def cmd_run(args):
 
 
 def cmd_analyze(args):
+    """Aggregate a results jsonl into the report.
+
+    Reproducibility caveat. cmd_run writes records as `as_completed`
+    yields them, so jsonl line order is worker-completion order, not
+    plan order. Every aggregate below is order-invariant, but
+    `first_divergences` is a first-25 sample taken in file order: when
+    a leg diverges on more than 25 plans the cap binds and both the
+    order and, in principle, the membership of the sample depend on
+    scheduling. That is why the relay legs reproduce content- but not
+    byte-identically across reruns while the endpoint and dsn legs (3
+    and 0 diverged, below the cap) reproduce byte-identically. Sorting
+    here would fix it going forward but would invalidate the report
+    hashes pinned in docs/notes/2026-07-11-letter-volume-report-
+    provenance.md, so the order is left as-is and the caveat recorded.
+    """
     plans = diverged = entry_div = none_div = washed = 0
     residue_plans = residue_total = errors = truncs = 0
     first_examples = []
