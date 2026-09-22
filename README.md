@@ -13,6 +13,11 @@ plan-drawn, adjacent, and window-feasible (`VerifiedSabr/Validity.lean`) —
 and differential validation against ION. Definitions carry references to the
 sections of the standard they model (`docs/algorithm.md`).
 
+The findings are written up in the conformance note *The measured price of
+deployed CGR practice: route selection under CCSDS 734.3-B-1*,
+[10.5281/zenodo.21316172](https://doi.org/10.5281/zenodo.21316172) (all
+versions). Cite the note for the results and the DOI above for the code.
+
 ## Differential testing
 
 The verified search compiles to a CLI (`lake exe sabrsearch`) that ingests
